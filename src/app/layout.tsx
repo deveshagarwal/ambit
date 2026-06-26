@@ -10,10 +10,26 @@ import NavBar from "@/components/NavBar";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+const SITE = "https://getambit.vercel.app";
+const DESCRIPTION =
+  "Autonomous networking. Set up once and your agent works the network for you, day and night, connecting you to the person who can help.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
   title: "Ambit: autonomous networking",
-  description:
-    "Autonomous networking. Build your persona, let your agent work the network for you, and earn cred by helping others.",
+  description: DESCRIPTION,
+  openGraph: {
+    title: "Ambit: your network, on autopilot",
+    description: DESCRIPTION,
+    url: SITE,
+    siteName: "Ambit",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ambit: your network, on autopilot",
+    description: DESCRIPTION,
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
