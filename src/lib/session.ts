@@ -1,10 +1,20 @@
 import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { getMemberByClerkId } from "./store/repo";
 
-const COOKIE = "weave_member";
+// Demo "act as" override (used by the community sandbox). When set, it wins so
+// you can impersonate a seeded member. Otherwise identity comes from Clerk.
+const COOKIE = "ambit_actas";
 
 export async function getCurrentMemberId(): Promise<string | null> {
   const store = await cookies();
-  return store.get(COOKIE)?.value ?? null;
+  const override = store.get(COOKIE)?.value;
+  if (override) return override;
+
+  const { userId } = await auth();
+  if (!userId) return null;
+  const member = await getMemberByClerkId(userId);
+  return member?.id ?? null;
 }
 
 export async function setCurrentMember(id: string): Promise<void> {

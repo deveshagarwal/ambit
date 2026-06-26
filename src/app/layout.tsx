@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import "./globals.css";
 import { getCurrentMemberId } from "@/lib/session";
 import { getMember } from "@/lib/store/repo";
@@ -15,17 +17,20 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { userId } = await auth();
   const id = await getCurrentMemberId();
   const me = id ? await getMember(id) : undefined;
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <NavBar me={me ? { name: me.name, karma: me.karma } : null} />
-        <main className="flex-1">{children}</main>
-      </body>
-    </html>
+    <ClerkProvider afterSignOutUrl="/">
+      <html
+        lang="en"
+        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col">
+          <NavBar signedIn={!!userId} me={me ? { name: me.name, karma: me.karma } : null} />
+          <main className="flex-1">{children}</main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -20,10 +20,11 @@ export async function createMember(input: {
   bio: string;
   isSynthetic?: boolean;
   karma?: number;
+  clerkUserId?: string | null;
 }): Promise<Member> {
   const row = await queryOne<Member>(
-    `INSERT INTO members (id, name, headline, bio, karma, is_synthetic)
-     VALUES ($1,$2,$3,$4,$5,$6)
+    `INSERT INTO members (id, name, headline, bio, karma, is_synthetic, clerk_user_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
      RETURNING ${MEMBER_COLS}`,
     [
       nanoid(10),
@@ -32,6 +33,7 @@ export async function createMember(input: {
       input.bio,
       input.karma ?? 0,
       input.isSynthetic ?? false,
+      input.clerkUserId ?? null,
     ],
   );
   return row!;
@@ -39,6 +41,13 @@ export async function createMember(input: {
 
 export async function getMember(id: string): Promise<Member | undefined> {
   return queryOne<Member>(`SELECT ${MEMBER_COLS} FROM members WHERE id = $1`, [id]);
+}
+
+export async function getMemberByClerkId(clerkUserId: string): Promise<Member | undefined> {
+  return queryOne<Member>(
+    `SELECT ${MEMBER_COLS} FROM members WHERE clerk_user_id = $1`,
+    [clerkUserId],
+  );
 }
 
 export async function listMembers(): Promise<Member[]> {
