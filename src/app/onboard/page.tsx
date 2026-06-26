@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 interface Form {
   name: string;
@@ -23,10 +24,17 @@ const EMPTY: Form = {
 
 export default function Onboard() {
   const router = useRouter();
+  const { user } = useUser();
   const [form, setForm] = useState<Form>(EMPTY);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importState, setImportState] = useState<"idle" | "importing" | "done">("idle");
+
+  // Prefill the name from the signed-in Clerk account.
+  useEffect(() => {
+    const name = user?.fullName;
+    if (name) setForm((f) => (f.name ? f : { ...f, name }));
+  }, [user]);
 
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));

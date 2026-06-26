@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { createConnection, getMember, logOutcome } from "@/lib/store/repo";
-import { awardConnection } from "@/lib/karma";
+import { createIntroRequest, getMember, logOutcome } from "@/lib/store/repo";
 import { getCurrentMemberId } from "@/lib/session";
 
 export const runtime = "nodejs";
 
+// Send an intro request. It stays pending until the recipient accepts (see
+// /api/requests/respond). No connection or cred is granted yet.
 export async function POST(req: Request) {
   const memberId = await getCurrentMemberId();
   if (!memberId) {
@@ -19,14 +20,16 @@ export async function POST(req: Request) {
   if (!target) {
     return NextResponse.json({ error: "member not found" }, { status: 404 });
   }
+  if (toMemberId === memberId) {
+    return NextResponse.json({ error: "cannot request yourself" }, { status: 400 });
+  }
 
-  const connection = await createConnection({
+  const request = await createIntroRequest({
     from: memberId,
     to: toMemberId,
     reason: reason ?? "",
     askId: askId ?? null,
   });
-  await awardConnection(toMemberId, memberId);
   await logOutcome({
     askerId: memberId,
     targetId: toMemberId,
@@ -34,5 +37,5 @@ export async function POST(req: Request) {
     action: "intro_requested",
   });
 
-  return NextResponse.json({ connection, helper: await getMember(toMemberId) });
+  return NextResponse.json({ requested: true, request });
 }

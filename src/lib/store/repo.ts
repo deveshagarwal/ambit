@@ -195,6 +195,65 @@ export async function getKarmaEvents(memberId: string): Promise<KarmaEvent[]> {
   );
 }
 
+// ---- Intro requests ----
+
+export interface IntroRequest {
+  id: string;
+  from_member: string;
+  to_member: string;
+  reason: string;
+  ask_id: string | null;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+}
+
+export async function createIntroRequest(input: {
+  from: string;
+  to: string;
+  reason: string;
+  askId?: string | null;
+}): Promise<IntroRequest> {
+  const row = await queryOne<IntroRequest>(
+    `INSERT INTO intro_requests (id, from_member, to_member, reason, ask_id)
+     VALUES ($1,$2,$3,$4,$5)
+     RETURNING id, from_member, to_member, reason, ask_id, status, created_at::text AS created_at`,
+    [nanoid(10), input.from, input.to, input.reason, input.askId ?? null],
+  );
+  return row!;
+}
+
+export async function getIntroRequest(id: string): Promise<IntroRequest | undefined> {
+  return queryOne<IntroRequest>(
+    `SELECT id, from_member, to_member, reason, ask_id, status, created_at::text AS created_at
+     FROM intro_requests WHERE id = $1`,
+    [id],
+  );
+}
+
+// Pending requests addressed to a member, with the asker's name/headline.
+export async function incomingRequests(
+  memberId: string,
+): Promise<(IntroRequest & { from_name: string; from_headline: string })[]> {
+  return query(
+    `SELECT r.id, r.from_member, r.to_member, r.reason, r.ask_id, r.status,
+            r.created_at::text AS created_at, m.name AS from_name, m.headline AS from_headline
+     FROM intro_requests r JOIN members m ON m.id = r.from_member
+     WHERE r.to_member = $1 AND r.status = 'pending'
+     ORDER BY r.created_at DESC`,
+    [memberId],
+  );
+}
+
+export async function setRequestStatus(
+  id: string,
+  status: "accepted" | "declined",
+): Promise<void> {
+  await query(
+    `UPDATE intro_requests SET status = $2, responded_at = now() WHERE id = $1`,
+    [id, status],
+  );
+}
+
 // ---- Outcomes (the feedback-loop log) ----
 
 export async function logOutcome(input: {

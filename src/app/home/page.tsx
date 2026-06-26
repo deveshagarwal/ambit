@@ -11,6 +11,7 @@ import {
 import type { AttributeType } from "@/lib/types";
 import CredBadge from "@/components/CredBadge";
 import Feed from "@/components/Feed";
+import RequestsInbox from "@/components/RequestsInbox";
 
 const TYPE_LABEL: Record<AttributeType, string> = {
   skill: "Skills",
@@ -105,6 +106,7 @@ export default async function Home() {
       </div>
 
       <div className="flex flex-col gap-5">
+        <RequestsInbox />
         <CredBadge karma={me.karma} size="lg" />
 
         <Feed />

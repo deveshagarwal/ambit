@@ -75,6 +75,21 @@ CREATE TABLE IF NOT EXISTS karma_events (
 );
 CREATE INDEX IF NOT EXISTS idx_karma_member ON karma_events(member_id);
 
+-- Intro requests stay pending until the recipient accepts. Accepting is what
+-- creates a connection and awards cred, so cred reflects real help given.
+CREATE TABLE IF NOT EXISTS intro_requests (
+  id           text PRIMARY KEY,
+  from_member  text NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  to_member    text NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  reason       text NOT NULL DEFAULT '',
+  ask_id       text,
+  status       text NOT NULL DEFAULT 'pending',
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  responded_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_req_to ON intro_requests(to_member, status);
+CREATE INDEX IF NOT EXISTS idx_req_from ON intro_requests(from_member);
+
 -- The feedback loop substrate: every time the network surfaces or connects
 -- people, log it. This is the labeled training data for future ranking models.
 CREATE TABLE IF NOT EXISTS outcomes (

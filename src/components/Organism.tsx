@@ -149,7 +149,7 @@ export default function Organism({ placeholder }: OrganismProps) {
                     <div className="mt-4">
                       {connected[mt.member.id] ? (
                         <span className="text-sm font-medium text-[var(--good)]">
-                          Intro requested, they earned cred for helping
+                          Request sent. They&apos;ll see it in their inbox.
                         </span>
                       ) : (
                         <button onClick={() => requestIntro(mt)} className="btn btn-ghost text-sm">
