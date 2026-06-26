@@ -6,14 +6,19 @@
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS members (
-  id           text PRIMARY KEY,
-  name         text NOT NULL,
-  headline     text NOT NULL DEFAULT '',
-  bio          text NOT NULL DEFAULT '',
-  karma        integer NOT NULL DEFAULT 0,
-  is_synthetic boolean NOT NULL DEFAULT false,
-  created_at   timestamptz NOT NULL DEFAULT now()
+  id            text PRIMARY KEY,
+  name          text NOT NULL,
+  headline      text NOT NULL DEFAULT '',
+  bio           text NOT NULL DEFAULT '',
+  karma         integer NOT NULL DEFAULT 0,
+  is_synthetic  boolean NOT NULL DEFAULT false,
+  clerk_user_id text,
+  created_at    timestamptz NOT NULL DEFAULT now()
 );
+-- Link a member to their Clerk account (idempotent for existing databases).
+ALTER TABLE members ADD COLUMN IF NOT EXISTS clerk_user_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_members_clerk
+  ON members(clerk_user_id) WHERE clerk_user_id IS NOT NULL;
 
 -- Reified, bitemporal, confidence-scored facts about a member.
 -- predicate: skill | experience | industry | interest | offer | need

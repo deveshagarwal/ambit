@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.5.9",
     "@electric-sql/pglite": "^0.5.3",
     "nanoid": "^5.1.16",
     "next": "16.2.9",

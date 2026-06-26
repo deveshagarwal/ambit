@@ -1,54 +1,54 @@
 // ============================================================================
 // LANDING PAGE COPY
-// Edit the text in this file to change what the landing page says.
-// It is plain text. Keep the quotes and commas; change only the words inside.
-// The {count} pieces use the live member count, leave the ${count} as-is.
+// Plain, human language, but it must be clear this is AUTONOMOUS networking:
+// it works for you in the background. Edit the words inside the quotes.
+// Leave the ${count} pieces as-is; they show the live member count.
 // ============================================================================
 
 export const landing = {
   hero: {
-    // tiny letter-spaced line above the headline
+    // tiny line above the headline
     kicker: "a living professional network",
-    // the headline is in three parts: normal, accent-colored, normal
-    headlineLead: "A network that is ",
-    headlineAccent: "alive",
+    // headline in three parts: normal, highlighted, normal
+    headlineLead: "Your network, ",
+    headlineAccent: "on autopilot",
     headlineTail: ".",
-    sub: "Every person a vector. Every need a path. Tell it what you need, and it finds your people.",
-    ctaJoin: "Enter the network", // shown when signed out
-    ctaSignedIn: "Talk to the network", // shown when signed in
+    sub: "Import your profile and forget: it networks for you day and night, autonomously meeting people, spotting matches, and making introductions. When you need something, it already knows who can help.",
+    ctaJoin: "Join the network", // shown when signed out
+    ctaSignedIn: "Ask for help", // shown when signed in
     ctaSecondary: "See how it works",
   },
 
   ask: {
     eyebrow: "Just ask",
-    heading: "Ask, and the network finds your person",
-    sub: "Say what you need in plain language. Your ask ripples through everyone the network holds and lands on the person who fits.",
-    // the prompt typed into the demo, and the people it surfaces
-    prompt: "I need an intro to a recruiter with a strong fintech network",
+    heading: "When you need someone, your network knows who.",
+    sub: "Because it is always working in the background, the moment you ask it maps you to the right person, and tells you why they can help.",
+    // the example shown in the demo, and the people it surfaces
+    prompt: "I need an introduction to a recruiter with a strong fintech network",
     results: [
-      { name: "Priya Park", score: 94, why: "Deep fintech recruiting network" },
-      { name: "Elena Kim", score: 88, why: "Sources senior eng, hiring funnels" },
-      { name: "Hugo Roy", score: 81, why: "Placed 50+ fintech engineers" },
+      { name: "Rob Gerke", score: 94, why: "Knows fintech recruiters well" },
+      { name: "Elena Kim", score: 88, why: "Hires senior engineers in fintech" },
+      { name: "Roy Keane", score: 81, why: "Has placed 50+ fintech engineers" },
     ],
   },
 
   cred: {
-    eyebrow: "Cred is reciprocity",
-    heading: "Help to earn cred. Cred is what gets you helped.",
-    sub: "The network runs on give and take. Every time you show up for someone, your standing grows, and that standing is exactly what the network spends to find help for you when you need it.",
-    // examples of the give -> get loop. edit, add, or remove freely.
+    eyebrow: "reciprocity as currency",
+    heading: "Contribute to the community. Earn your next connect.",
+    sub: "Every time you show up for someone, you build goodwill. The more you give, the more the community shows up when it is your turn to ask.",
+    // examples of give -> get. edit, add, or remove freely.
     examples: [
       {
         give: "You review a founder's pitch deck",
-        get: "Weeks later, the network finds you the backend engineer you needed.",
+        get: "Weeks later, someone introduces you to the engineer you needed.",
       },
       {
-        give: "You make a warm intro to an investor",
-        get: "Someone surfaces a design partner right as you launch.",
+        give: "You make an introduction to an investor",
+        get: "Another member helps you find a co-founder.",
       },
       {
-        give: "You answer a question on FDA clearance",
-        get: "The network connects you to a recruiter when you start hiring.",
+        give: "You answer a question in your field",
+        get: "When you are hiring, the right candidate comes to you.",
       },
     ],
   },
@@ -56,26 +56,26 @@ export const landing = {
   how: [
     {
       n: "01",
-      t: "Build your agent persona",
-      d: "Import your LinkedIn and answer a short survey. Your agent learns what you can contribute and what you need.",
+      t: "Set up once",
+      d: "Fill out info on what you do, what you can help with, and what you are looking for. Two minutes, then you are done.",
     },
     {
       n: "02",
-      t: "Talk to the network",
-      d: "Ask for anything in plain language. The network finds the people closest to your need, with a reason for each.",
+      t: "It networks for you",
+      d: "Your persona works in the background, meeting people, spotting good matches, and making introductions on your behalf.",
     },
     {
       n: "03",
-      t: "Earn cred",
-      d: "Help others and make intros. Cred is the standing that gets the network to show up for you in return.",
+      t: "Ask anytime, help often",
+      d: "Need something? Just ask and it connects you. Help others when you can, and it comes back around.",
     },
   ],
 
   cta: {
-    heading: "Let the network work for you.",
+    heading: "Let your network work for you.",
     sub: (count: number) =>
-      `Join ${count} members building a community where the right introduction is always one ask away.`,
+      `Join thousands of people letting their network do the work.`,
   },
 
-  footer: "A living professional network.",
+  footer: "Autonomous networking, for everyone.",
 };

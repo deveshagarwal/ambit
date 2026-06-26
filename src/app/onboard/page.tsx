@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 interface Form {
   name: string;
   headline: string;
-  linkedin: string;
   contribute: string;
   needs: string;
   skills: string;
@@ -16,7 +15,6 @@ interface Form {
 const EMPTY: Form = {
   name: "",
   headline: "",
-  linkedin: "",
   contribute: "",
   needs: "",
   skills: "",
@@ -28,13 +26,30 @@ export default function Onboard() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importState, setImportState] = useState<"idle" | "importing" | "done">("idle");
 
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const canBuild =
-    form.name.trim().length > 0 &&
-    (form.contribute.trim() || form.needs.trim() || form.linkedin.trim());
+  // Stub for now: real import arrives once a LinkedIn account is connected (via the
+  // Vercel/Clerk auth setup). Until then this pre-fills example details to edit.
+  function importLinkedIn() {
+    setImportState("importing");
+    setTimeout(() => {
+      setForm((f) => ({
+        ...f,
+        name: f.name || "Jordan Rivera",
+        headline: f.headline || "Founder, B2B SaaS",
+        contribute:
+          f.contribute || "warm intros to seed VCs\npitch deck feedback\nhiring senior engineers",
+        skills: f.skills || "fundraising, product, go-to-market",
+        industries: f.industries || "fintech, b2b saas",
+      }));
+      setImportState("done");
+    }, 1100);
+  }
+
+  const canBuild = form.name.trim().length > 0 && (form.contribute.trim() || form.needs.trim());
 
   async function build() {
     setBuilding(true);
@@ -77,17 +92,26 @@ export default function Onboard() {
           <h2 className="font-semibold">Import from LinkedIn</h2>
           <span className="text-xs text-[var(--muted)]">optional, speeds this up</span>
         </div>
-        <p className="text-sm text-[var(--muted)] mb-3">
-          Paste your LinkedIn &ldquo;About&rdquo; and a few roles. Your agent will read it and
-          pre-fill your skills, experience, and industries.
+        <p className="text-sm text-[var(--muted)] mb-4">
+          Pull in your details so your agent starts with your skills, experience, and
+          industries. You can edit everything after.
         </p>
-        <textarea
-          value={form.linkedin}
-          onChange={set("linkedin")}
-          rows={5}
-          placeholder="Paste your LinkedIn About section and experience here…"
-          className={`${field} resize-none`}
-        />
+        {importState === "done" ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--good)]">
+            <span>✓</span> Imported from LinkedIn. Review and edit below.
+          </div>
+        ) : (
+          <button
+            onClick={importLinkedIn}
+            disabled={importState === "importing"}
+            className="inline-flex items-center gap-2.5 rounded-xl bg-[#0a66c2] text-white font-semibold px-4 py-2.5 hover:brightness-110 disabled:opacity-70 transition"
+          >
+            <span className="grid place-items-center w-5 h-5 rounded-[4px] bg-white text-[#0a66c2] text-xs font-bold">
+              in
+            </span>
+            {importState === "importing" ? "Importing…" : "Import from LinkedIn"}
+          </button>
+        )}
       </div>
 
       {/* Survey */}

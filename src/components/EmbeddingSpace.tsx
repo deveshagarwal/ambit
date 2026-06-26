@@ -390,19 +390,14 @@ export default function EmbeddingSpace({
           >
             &ldquo;{PROMPT}&rdquo;
           </div>
-          <div className={`mt-1.5 font-mono text-[10px] ${dark ? "text-[#7a749f]" : "text-[var(--muted)]"}`}>
-            <span ref={vecRef}>[0.00, 0.00, … ]</span> · 1536-d embedding
+          <div className={`mt-1.5 text-[11px] ${dark ? "text-white/45" : "text-[var(--muted)]"}`}>
+            searching across the community
           </div>
         </div>
       ) : fill ? null : (
-        <div className="absolute top-3 left-4 font-mono text-[11px] leading-relaxed pointer-events-none">
-          <div className={dark ? "text-[#cdc6ff]/70" : "text-[var(--accent)]"}>
-            members · 1536-d embedding space
-          </div>
-          <span ref={vecRef} className={dark ? "text-[#7a749f]" : "text-[var(--muted)]"}>
-            [0.00, 0.00, … ]
-          </span>
-          <span className={dark ? "text-[#7a749f]" : "text-[var(--muted)]"}> · projected to 3-d</span>
+        <div className="absolute top-3 left-4 text-[11px] leading-relaxed pointer-events-none">
+          <div className={dark ? "text-[#cdc6ff]/70" : "text-[var(--accent)]"}>the community</div>
+          <span ref={vecRef} className="hidden" />
         </div>
       )}
 

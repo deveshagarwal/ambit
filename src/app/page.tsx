@@ -81,7 +81,7 @@ export default async function Landing() {
               <div className="text-sm font-medium leading-snug">{ex.give}</div>
               <div className="my-3 flex items-center gap-2 text-[var(--accent)]">
                 <span className="h-px flex-1 bg-[var(--border)]" />
-                <span className="text-xs font-semibold uppercase tracking-wide">earns cred</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">builds goodwill</span>
                 <span className="h-px flex-1 bg-[var(--border)]" />
               </div>
               <div className="text-sm leading-snug text-[var(--muted)]">{ex.get}</div>
