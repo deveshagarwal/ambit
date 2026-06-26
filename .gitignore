@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Weave local data
+/data/
+*.db
+*.db-*
+.env.local
+
+/data/weave-pg/
+
+# local tooling
+.claude/

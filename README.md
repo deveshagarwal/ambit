@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Weave
 
-## Getting Started
+Autonomous, agentic networking. Members build a node once through a conversational
+agent; from then on the community lives as a knowledge graph that your agent searches
+on your behalf. Ask for what you need in plain language and it connects you to the
+people who can actually help. Earn karma by helping others.
 
-First, run the development server:
+## How it works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Build your agent persona (`/onboard`): import LinkedIn and a short survey; the agent
+   extracts skills, experiences, industries, offers, and needs into the graph.
+2. Ask (`/ask`): talk to the network. Your need is embedded, ranked against everyone's
+   offer-side vectors with a graph trust boost, and the best people come back with a
+   reason for each.
+3. Connect: request an intro. A connection edge is recorded, the helper earns cred, and
+   the outcome is logged.
+4. Community (`/community`): explore the real latent space. A demo sandbox lets you "act
+   as" any seeded member and reseed at will.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js 16 / React 19 / Tailwind 4, app router.
+- Postgres data layer behind one `query()` seam (`src/lib/store/`): PGlite locally (zero
+  setup), hosted Postgres (Vercel Postgres / Neon) in production via `DATABASE_URL`.
+  Facts are reified, bitemporal, confidence-scored edges; outcomes are logged from day one.
+- AI brain: provider-agnostic OpenAI-compatible client (`src/lib/ai.ts`), defaults to
+  DeepSeek. Every AI path has a deterministic fallback, so the app runs with no key.
+- See `docs/backend-architecture.md` (the decision doc) and `docs/BACKEND.md` (the running
+  implementation, schema, and deploy steps).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+    npm install
+    cp .env.example .env.local   # add AI_API_KEY for the real DeepSeek brain (optional)
+    npm run dev                  # uses local PGlite, seeds 45 members on first hit
 
-To learn more about Next.js, take a look at the following resources:
+No database setup is needed locally. Without an AI key the app uses heuristic onboarding,
+keyword need-parsing, and vector + overlap matching. With a key set, the AI paths light up.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy (Vercel)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push to GitHub, import into Vercel.
+2. Add a Postgres store in the Vercel project (Storage -> Postgres); it injects
+   `POSTGRES_URL`, which the app picks up automatically.
+3. Add `AI_API_KEY` if using a real brain. Deploy. Schema and seed run on first boot.
 
-## Deploy on Vercel
+## Key files
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- src/lib/store/: query layer, schema, repo, graph + vector seams.
+- src/lib/match.ts: the matching cascade (vector + graph trust boost + optional LLM rerank).
+- src/lib/agent.ts: onboarding/persona extraction, need parsing, the organism turn.
+- src/lib/seed.ts: synthetic community generator.
+- src/app/api/*: onboard, ask, organism, connect, session, sandbox, feed, space routes.
