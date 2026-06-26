@@ -72,7 +72,12 @@ export default async function Home() {
         </div>
 
         <div className="card p-6">
-          <h2 className="font-semibold mb-4">Your persona</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Your persona</h2>
+            <Link href="/settings" className="text-sm text-[var(--accent)] hover:underline">
+              Edit
+            </Link>
+          </div>
           <div className="flex flex-col gap-4">
             {grouped.map((g) => (
               <div key={g.type}>

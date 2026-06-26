@@ -102,6 +102,40 @@ export async function getAttributes(memberId: string): Promise<Attribute[]> {
   );
 }
 
+// Add a single fact and return it (with its id), for the persona editor.
+export async function addAttribute(
+  memberId: string,
+  attr: { type: AttributeType; value: string; source?: string },
+): Promise<Attribute> {
+  const row = await queryOne<Attribute>(
+    `INSERT INTO edges (id, subject_id, predicate, object_value, tag, source)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     RETURNING ${ATTR_SELECT}`,
+    [nanoid(10), memberId, attr.type, attr.value.trim(), normalizeTag(attr.value), attr.source ?? "self"],
+  );
+  return row!;
+}
+
+// Invalidate (soft-delete) a fact the member owns. Bitemporal: history is kept.
+export async function invalidateEdge(id: string, memberId: string): Promise<void> {
+  await query(
+    `UPDATE edges SET invalidated_at = now()
+     WHERE id = $1 AND subject_id = $2 AND invalidated_at IS NULL`,
+    [id, memberId],
+  );
+}
+
+export async function updateMemberProfile(
+  memberId: string,
+  input: { name: string; headline: string },
+): Promise<void> {
+  await query(`UPDATE members SET name = $2, headline = $3 WHERE id = $1`, [
+    memberId,
+    input.name,
+    input.headline,
+  ]);
+}
+
 export async function allAttributes(): Promise<Attribute[]> {
   return query<Attribute>(`SELECT ${ATTR_SELECT} FROM edges WHERE ${ACTIVE}`);
 }

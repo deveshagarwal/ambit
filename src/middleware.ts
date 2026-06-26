@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Pages that require a signed-in user. The landing and community stay public.
-const isProtected = createRouteMatcher(["/onboard(.*)", "/home(.*)", "/ask(.*)"]);
+const isProtected = createRouteMatcher(["/onboard(.*)", "/home(.*)", "/ask(.*)", "/settings(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtected(req)) await auth.protect();
