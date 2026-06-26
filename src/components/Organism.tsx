@@ -31,7 +31,7 @@ export default function Organism({ placeholder }: OrganismProps) {
   const [text, setText] = useState("");
   const [thinking, setThinking] = useState(false);
   const [needAuth, setNeedAuth] = useState(false);
-  const [connected, setConnected] = useState<Record<string, boolean>>({});
+  const [connected, setConnected] = useState<Record<string, "sent" | "connected">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,7 +78,10 @@ export default function Organism({ placeholder }: OrganismProps) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ toMemberId: m.member.id, reason: m.reason, askId: null }),
     });
-    if (res.ok) setConnected((c) => ({ ...c, [m.member.id]: true }));
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setConnected((c) => ({ ...c, [m.member.id]: data.accepted ? "connected" : "sent" }));
+    }
   }
 
   if (needAuth) {
@@ -147,7 +150,11 @@ export default function Organism({ placeholder }: OrganismProps) {
                       </div>
                     )}
                     <div className="mt-4">
-                      {connected[mt.member.id] ? (
+                      {connected[mt.member.id] === "connected" ? (
+                        <span className="text-sm font-medium text-[var(--good)]">
+                          Connected. You can reach out now.
+                        </span>
+                      ) : connected[mt.member.id] === "sent" ? (
                         <span className="text-sm font-medium text-[var(--good)]">
                           Request sent. They&apos;ll see it in their inbox.
                         </span>

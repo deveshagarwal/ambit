@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { createIntroRequest, getMember, logOutcome } from "@/lib/store/repo";
+import {
+  createConnection,
+  createIntroRequest,
+  getMember,
+  logOutcome,
+  setRequestStatus,
+} from "@/lib/store/repo";
+import { awardConnection } from "@/lib/karma";
 import { getCurrentMemberId } from "@/lib/session";
 
 export const runtime = "nodejs";
 
-// Send an intro request. It stays pending until the recipient accepts (see
-// /api/requests/respond). No connection or cred is granted yet.
+// Send an intro request. Real members get a pending request they accept from
+// their inbox. Synthetic (seed) members can't log in to accept, so those are
+// auto-accepted, so the loop still completes for early/solo users.
 export async function POST(req: Request) {
   const memberId = await getCurrentMemberId();
   if (!memberId) {
@@ -36,6 +44,24 @@ export async function POST(req: Request) {
     askId: askId ?? null,
     action: "intro_requested",
   });
+
+  if (target.is_synthetic) {
+    await setRequestStatus(request.id, "accepted");
+    await createConnection({
+      from: memberId,
+      to: toMemberId,
+      reason: reason ?? "",
+      askId: askId ?? null,
+    });
+    await awardConnection(toMemberId, memberId);
+    await logOutcome({
+      askerId: memberId,
+      targetId: toMemberId,
+      askId: askId ?? null,
+      action: "accepted",
+    });
+    return NextResponse.json({ accepted: true, request });
+  }
 
   return NextResponse.json({ requested: true, request });
 }
