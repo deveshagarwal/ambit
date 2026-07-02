@@ -188,6 +188,17 @@ export async function createConnection(input: {
   return row!;
 }
 
+// True if the two members are already connected (in either direction).
+export async function areConnected(a: string, b: string): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM connections
+     WHERE (from_member = $1 AND to_member = $2) OR (from_member = $2 AND to_member = $1)
+     LIMIT 1`,
+    [a, b],
+  );
+  return !!row;
+}
+
 export async function getConnectionsFor(memberId: string): Promise<Connection[]> {
   return query<Connection>(
     `SELECT ${CONN_COLS} FROM connections
@@ -256,6 +267,16 @@ export async function createIntroRequest(input: {
   return row!;
 }
 
+// True if there is already a pending request from -> to (avoid duplicates).
+export async function pendingRequestExists(from: string, to: string): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM intro_requests
+     WHERE from_member = $1 AND to_member = $2 AND status = 'pending' LIMIT 1`,
+    [from, to],
+  );
+  return !!row;
+}
+
 export async function getIntroRequest(id: string): Promise<IntroRequest | undefined> {
   return queryOne<IntroRequest>(
     `SELECT id, from_member, to_member, reason, ask_id, status, created_at::text AS created_at
@@ -278,14 +299,21 @@ export async function incomingRequests(
   );
 }
 
+// Flip a request from pending to accepted/declined. Compare-and-set: only a
+// still-pending request is updated, and we return whether THIS call did it, so
+// two concurrent accepts (e.g. a double-click) can't both create a connection
+// and double-award karma.
 export async function setRequestStatus(
   id: string,
   status: "accepted" | "declined",
-): Promise<void> {
-  await query(
-    `UPDATE intro_requests SET status = $2, responded_at = now() WHERE id = $1`,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE intro_requests SET status = $2, responded_at = now()
+     WHERE id = $1 AND status = 'pending'
+     RETURNING id`,
     [id, status],
   );
+  return !!row;
 }
 
 // ---- Outcomes (the feedback-loop log) ----

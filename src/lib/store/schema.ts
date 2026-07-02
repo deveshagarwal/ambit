@@ -102,4 +102,29 @@ CREATE TABLE IF NOT EXISTS outcomes (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_outcomes_asker ON outcomes(asker_id);
+
+-- Early-launch access control. The public landing collects emails here; real
+-- members are let in with invite codes so we can grow density deliberately.
+CREATE TABLE IF NOT EXISTS waitlist (
+  id         text PRIMARY KEY,
+  email      text NOT NULL,
+  note       text NOT NULL DEFAULT '',
+  invited_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(lower(email));
+
+-- One-time invite codes. Redeeming binds the code to the redeemer's Clerk id
+-- (compare-and-set on used_by, so a code can only be spent once).
+CREATE TABLE IF NOT EXISTS invite_codes (
+  code       text PRIMARY KEY,
+  note       text NOT NULL DEFAULT '',
+  used_by    text,
+  used_at    timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- Note: duplicate-connection / duplicate-pending-request prevention is enforced
+-- in the connect route (see api/connect), not as a unique index here, because
+-- the boot-time DDL runs against the live DB with no migration guard and a
+-- unique index would fail to create if legacy duplicate rows already exist.
 `;
