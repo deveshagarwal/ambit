@@ -14,9 +14,11 @@ export const landing = {
     headlineAccent: "on autopilot",
     headlineTail: ".",
     sub: "Import your profile and forget: it networks for you day and night, autonomously meeting people, spotting matches, and making introductions. When you need something, it already knows who can help.",
-    ctaJoin: "Join the network", // shown when signed out
+    ctaJoin: "Request access", // shown when signed out (opens the waitlist)
     ctaSignedIn: "Ask for help", // shown when signed in
     ctaSecondary: "See how it works",
+    invitePrompt: "Have an invite code?", // small link next to the primary CTA
+    inviteLink: "Sign up",
   },
 
   ask: {
@@ -72,9 +74,8 @@ export const landing = {
   ],
 
   cta: {
-    heading: "Let your network work for you.",
-    sub: (count: number) =>
-      `Join thousands of people letting their network do the work.`,
+    heading: "Request early access.",
+    sub: "Ambit is invite-only while we grow the network deliberately. Leave your email and we'll send an invite as spots open.",
   },
 
   footer: "Autonomous networking, for everyone.",

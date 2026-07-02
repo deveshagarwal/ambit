@@ -30,8 +30,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "already responded" }, { status: 409 });
   }
 
+  // Compare-and-set: only the call that actually flips the pending request does
+  // the side effects, so a double-submit can't double-award karma or connect twice.
+  const flipped = await setRequestStatus(requestId, accept ? "accepted" : "declined");
+  if (!flipped) {
+    return NextResponse.json({ error: "already responded" }, { status: 409 });
+  }
+
   if (accept) {
-    await setRequestStatus(requestId, "accepted");
     await createConnection({
       from: request.from_member,
       to: request.to_member,
@@ -46,7 +52,6 @@ export async function POST(req: Request) {
       action: "accepted",
     });
   } else {
-    await setRequestStatus(requestId, "declined");
     await logOutcome({
       askerId: request.from_member,
       targetId: memberId,

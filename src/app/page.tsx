@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { ensureSeeded } from "@/lib/bootstrap";
-import { getMember, memberCount } from "@/lib/store/repo";
+import { getMember } from "@/lib/store/repo";
 import { getCurrentMemberId } from "@/lib/session";
 import { landing } from "@/content/landing";
 import EmbeddingSpace from "@/components/EmbeddingSpace";
 import Logo from "@/components/Logo";
 import JoinCTA from "@/components/JoinCTA";
+import Waitlist from "@/components/Waitlist";
 
 export default async function Landing() {
   await ensureSeeded();
-  const count = await memberCount();
   const id = await getCurrentMemberId();
   const signedIn = !!(id && (await getMember(id)));
-  const primaryHref = signedIn ? "/ask" : "/onboard";
-  const primaryLabel = signedIn ? landing.hero.ctaSignedIn : landing.hero.ctaJoin;
 
   return (
     <div className="text-[var(--foreground)]">
@@ -39,12 +37,18 @@ export default async function Landing() {
           </h1>
           <p className="mt-7 text-lg text-white/60 leading-relaxed max-w-md">{landing.hero.sub}</p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3 pointer-events-auto">
-            <JoinCTA
-              signedIn={signedIn}
-              href={primaryHref}
-              label={primaryLabel}
-              className="btn btn-primary text-base px-6 py-3"
-            />
+            {signedIn ? (
+              <JoinCTA
+                signedIn
+                href="/ask"
+                label={landing.hero.ctaSignedIn}
+                className="btn btn-primary text-base px-6 py-3"
+              />
+            ) : (
+              <Link href="#waitlist" className="btn btn-primary text-base px-6 py-3">
+                {landing.hero.ctaJoin}
+              </Link>
+            )}
             <Link
               href="#work"
               className="btn text-base px-6 py-3 border border-white/25 text-white hover:bg-white/10"
@@ -52,6 +56,17 @@ export default async function Landing() {
               {landing.hero.ctaSecondary}
             </Link>
           </div>
+          {!signedIn && (
+            <p className="mt-4 text-sm text-white/50 pointer-events-auto">
+              {landing.hero.invitePrompt}{" "}
+              <JoinCTA
+                signedIn={false}
+                href="/onboard"
+                label={landing.hero.inviteLink}
+                className="text-[#a99bff] font-medium hover:underline"
+              />
+            </p>
+          )}
         </div>
       </section>
 
@@ -112,17 +127,29 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="max-w-6xl mx-auto px-5 pb-24">
+      {/* FINAL CTA: waitlist capture */}
+      <section id="waitlist" className="max-w-6xl mx-auto px-5 pb-24 scroll-mt-20">
         <div className="card px-8 py-14 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{landing.cta.heading}</h2>
-          <p className="mt-3 text-[var(--muted)] max-w-lg mx-auto">{landing.cta.sub(count)}</p>
-          <JoinCTA
-            signedIn={signedIn}
-            href={primaryHref}
-            label={primaryLabel}
-            className="btn btn-primary mt-7 text-base px-7 py-3"
-          />
+          <p className="mt-3 text-[var(--muted)] max-w-lg mx-auto">{landing.cta.sub}</p>
+          {signedIn ? (
+            <Link href="/ask" className="btn btn-primary mt-7 text-base px-7 py-3">
+              {landing.hero.ctaSignedIn}
+            </Link>
+          ) : (
+            <div className="mt-7">
+              <Waitlist />
+              <p className="mt-3 text-xs text-[var(--muted)]">
+                {landing.hero.invitePrompt}{" "}
+                <JoinCTA
+                  signedIn={false}
+                  href="/onboard"
+                  label={landing.hero.inviteLink}
+                  className="text-[var(--accent)] font-medium hover:underline"
+                />
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
