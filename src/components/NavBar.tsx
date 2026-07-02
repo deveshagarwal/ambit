@@ -52,12 +52,12 @@ export default function NavBar({
             </>
           ) : (
             <>
-              <SignInButton mode="modal">
+              <SignInButton fallbackRedirectUrl="/home">
                 <button className="px-3 py-1.5 rounded-lg hover:bg-[var(--accent-soft)] font-medium">
                   Sign in
                 </button>
               </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl="/onboard">
+              <SignUpButton forceRedirectUrl="/onboard">
                 <button className="btn btn-primary !py-1.5 !px-3 text-sm whitespace-nowrap">
                   Join the network
                 </button>
