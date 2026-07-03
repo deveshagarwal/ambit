@@ -67,7 +67,7 @@ export default function Waitlist({ dark = false }: { dark?: boolean }) {
           disabled={state === "sending"}
           className="px-6 py-3 whitespace-nowrap"
         >
-          {state === "sending" ? "Joining…" : "Request access"}
+          {state === "sending" ? "Joining…" : "Join the waitlist"}
         </Button>
       </div>
       {state === "error" && (

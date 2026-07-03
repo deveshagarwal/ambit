@@ -14,8 +14,8 @@ export const landing = {
     headlineLead: "Meet the person who changes ",
     headlineAccent: "everything",
     headlineTail: ".",
-    sub: "Looking for a cofounder? A mentor? An engineer? Ambit learns who you are and what you need - then introduces you. No feed, no titles, no performing.",
-    ctaJoin: "Apply to join", // shown when signed out (opens the waitlist)
+    sub: "Looking for a cofounder? A mentor? An engineer? Let your network do the work. Ambit learns who you are and what you need - then introduces you. No feed, no titles, no performing.",
+    ctaJoin: "Expand your Ambit", // shown when signed out (opens the waitlist)
     ctaSignedIn: "Ask Ambit", // shown when signed in
     ctaSecondary: "See how it works",
     invitePrompt: "Have an invite code?", // small link next to the primary CTA
@@ -106,7 +106,7 @@ export const landing = {
   },
 
   cta: {
-    heading: "Go find the people who make your life bigger.",
+    heading: "Find the people who make your life bigger.",
     sub: "Ambit is invite-only while the network grows. Leave your email and we'll send an invite as spots open.",
   },
 

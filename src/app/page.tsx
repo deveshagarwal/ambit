@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { ensureSeeded } from "@/lib/bootstrap";
 import { landing } from "@/content/landing";
@@ -21,8 +20,8 @@ export default async function Landing() {
       <section className="relative overflow-hidden bg-background pt-6 pb-24 sm:pb-28">
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-5 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-serif font-semibold text-xl tracking-tight">
-            <Logo size={22} className="text-foreground" /> Ambit
+          <div className="flex items-center gap-2.5 font-serif font-semibold text-2xl sm:text-3xl tracking-tight">
+            <Logo size={30} className="text-foreground" /> Ambit
           </div>
           <div className="flex items-center gap-5">
             <SignInButton forceRedirectUrl="/home">
@@ -62,13 +61,15 @@ export default async function Landing() {
               {/* "See how it works" secondary CTA hidden for now */}
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              {landing.hero.invitePrompt}{" "}
-              <Link
-                href="#waitlist"
-                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-              >
-                {landing.hero.inviteLink}
-              </Link>
+              Already have an account?{" "}
+              <SignInButton forceRedirectUrl="/home">
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline underline-offset-4 hover:text-foreground cursor-pointer"
+                >
+                  Sign in
+                </button>
+              </SignInButton>
             </p>
           </div>
 
