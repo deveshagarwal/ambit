@@ -34,11 +34,19 @@ async function makeBackend(): Promise<Backend> {
   if (CONN) {
     activeBackend = "postgres";
     const { Pool } = await import("pg");
-    // Hosted Postgres (Supabase/Neon/Vercel) requires SSL; their pooler certs
-    // often don't verify against Node's default CA bundle, so don't reject. The
-    // connection is to a trusted managed provider.
+    // Hosted Postgres (Supabase/Neon/Vercel) requires SSL, but their pooler certs
+    // don't verify against Node's default CA bundle ("self-signed certificate in
+    // chain"). A connection string's sslmode=require overrides the ssl config
+    // object, so force sslmode=no-verify in the string itself (SSL on, no cert
+    // verification — the endpoint is a trusted managed provider).
+    let conn = CONN;
+    if (/[?&]sslmode=/.test(conn)) {
+      conn = conn.replace(/([?&])sslmode=[^&]*/, "$1sslmode=no-verify");
+    } else {
+      conn += (conn.includes("?") ? "&" : "?") + "sslmode=no-verify";
+    }
     const pool = new Pool({
-      connectionString: CONN,
+      connectionString: conn,
       max: 5,
       ssl: { rejectUnauthorized: false },
     });
