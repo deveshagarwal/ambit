@@ -34,7 +34,14 @@ async function makeBackend(): Promise<Backend> {
   if (CONN) {
     activeBackend = "postgres";
     const { Pool } = await import("pg");
-    const pool = new Pool({ connectionString: CONN, max: 5 });
+    // Hosted Postgres (Supabase/Neon/Vercel) requires SSL; their pooler certs
+    // often don't verify against Node's default CA bundle, so don't reject. The
+    // connection is to a trusted managed provider.
+    const pool = new Pool({
+      connectionString: CONN,
+      max: 5,
+      ssl: { rejectUnauthorized: false },
+    });
     const backend: Backend = {
       query: (text, params) => pool.query(text, params as unknown[]),
     };
@@ -82,7 +89,14 @@ async function makeBackend(): Promise<Backend> {
 }
 
 function backend(): Promise<Backend> {
-  if (!backendPromise) backendPromise = makeBackend();
+  // Reset on failure so a transient connect/DDL error doesn't poison the cached
+  // promise permanently (next call retries instead of always rejecting).
+  if (!backendPromise) {
+    backendPromise = makeBackend().catch((e) => {
+      backendPromise = null;
+      throw e;
+    });
+  }
   return backendPromise;
 }
 
