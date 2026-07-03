@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
 
 // The always-alive feed. A vertical pulse of reciprocity moments that keeps
 // refreshing on its own so the network feels like a living thing you can watch
@@ -19,9 +20,9 @@ const KIND_META: Record<
   FeedItem["kind"],
   { icon: string; color: string; label: string }
 > = {
-  you_can_help: { icon: "🤝", color: "var(--accent)", label: "You can help" },
+  you_can_help: { icon: "🤝", color: "var(--primary)", label: "You can help" },
   could_help_you: { icon: "✨", color: "var(--good)", label: "Help for you" },
-  connection: { icon: "🪢", color: "var(--muted)", label: "Connection" },
+  connection: { icon: "🪢", color: "var(--muted-foreground)", label: "Connection" },
   cred: { icon: "★", color: "var(--karma)", label: "Cred" },
   joined: { icon: "👋", color: "var(--accent-2)", label: "Joined" },
 };
@@ -84,12 +85,12 @@ export default function Feed() {
   }, [load]);
 
   return (
-    <div className="card p-4">
+    <Card className="gap-0 p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
           The pulse
         </h2>
-        <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
+        <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
           <span className="wv-live-dot" aria-hidden />
           Live
         </span>
@@ -106,11 +107,11 @@ export default function Feed() {
           ))}
         </div>
       ) : error && items.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>
+        <p className="text-sm py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
           {error}
         </p>
       ) : items.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>
+        <p className="text-sm py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
           Quiet for now. The network is listening.
         </p>
       ) : (
@@ -148,7 +149,7 @@ export default function Feed() {
                     </p>
                     <span
                       className="text-[0.68rem] shrink-0 ml-auto"
-                      style={{ color: "var(--muted)" }}
+                      style={{ color: "var(--muted-foreground)" }}
                     >
                       {relativeTime(item.ts)}
                     </span>
@@ -156,7 +157,7 @@ export default function Feed() {
                   {item.sub ? (
                     <p
                       className="text-xs mt-0.5 truncate"
-                      style={{ color: "var(--muted)" }}
+                      style={{ color: "var(--muted-foreground)" }}
                       title={item.sub}
                     >
                       {item.sub}
@@ -166,7 +167,7 @@ export default function Feed() {
                     <a
                       href={item.href}
                       className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold"
-                      style={{ color: "var(--accent)" }}
+                      style={{ color: "var(--primary)" }}
                     >
                       Help out →
                     </a>
@@ -195,6 +196,6 @@ export default function Feed() {
           .wv-live-dot { animation: none; }
         }
       `}</style>
-    </div>
+    </Card>
   );
 }

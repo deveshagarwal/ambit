@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Req {
   id: string;
@@ -46,39 +48,40 @@ export default function RequestsInbox() {
   if (loading || reqs.length === 0) return null;
 
   return (
-    <div className="card p-6">
+    <Card className="gap-0 p-6">
       <div className="flex items-center gap-2 mb-3">
-        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
         <h2 className="font-semibold">Intro requests</h2>
-        <span className="text-xs text-[var(--muted)]">{reqs.length}</span>
+        <span className="text-xs text-[var(--muted-foreground)]">{reqs.length}</span>
       </div>
       <div className="flex flex-col gap-3">
         {reqs.map((r) => (
           <div key={r.id} className="border border-[var(--border)] rounded-xl p-3.5">
             <div className="font-medium text-sm">{r.from_name}</div>
-            <div className="text-xs text-[var(--muted)]">{r.from_headline}</div>
+            <div className="text-xs text-[var(--muted-foreground)]">{r.from_headline}</div>
             {r.reason && (
-              <p className="mt-1.5 text-xs text-[var(--muted)] leading-relaxed">{r.reason}</p>
+              <p className="mt-1.5 text-xs text-[var(--muted-foreground)] leading-relaxed">{r.reason}</p>
             )}
             <div className="mt-3 flex gap-2">
-              <button
+              <Button
+                size="sm"
                 onClick={() => respond(r.id, true)}
                 disabled={busy === r.id}
-                className="btn btn-primary text-sm !py-1.5 !px-3"
               >
                 Accept
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => respond(r.id, false)}
                 disabled={busy === r.id}
-                className="btn btn-ghost text-sm !py-1.5 !px-3"
               >
                 Decline
-              </button>
+              </Button>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

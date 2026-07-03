@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import "./globals.css";
 import { getCurrentMemberId } from "@/lib/session";
 import { getMember } from "@/lib/store/repo";
-import NavBar from "@/components/NavBar";
+import Sidebar from "@/components/Sidebar";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -42,9 +42,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full flex flex-col">
-          <NavBar signedIn={!!userId} me={me ? { name: me.name, karma: me.karma } : null} />
-          <main className="flex-1">{children}</main>
+        <body className="min-h-screen flex">
+          <Sidebar signedIn={!!userId} me={me ? { name: me.name, karma: me.karma } : null} />
+          <main className="flex-1 min-w-0 h-screen overflow-y-auto">{children}</main>
         </body>
       </html>
     </ClerkProvider>

@@ -12,6 +12,9 @@ import type { AttributeType } from "@/lib/types";
 import CredBadge from "@/components/CredBadge";
 import Feed from "@/components/Feed";
 import RequestsInbox from "@/components/RequestsInbox";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const TYPE_LABEL: Record<AttributeType, string> = {
   skill: "Skills",
@@ -32,10 +35,10 @@ export default async function Home() {
     return (
       <div className="max-w-md mx-auto px-5 py-24 text-center">
         <h1 className="text-2xl font-bold">You&apos;re not in the graph yet</h1>
-        <p className="mt-2 text-[var(--muted)]">Build your agent persona to start networking.</p>
-        <Link href="/onboard" className="btn btn-primary mt-6">
+        <p className="mt-2 text-[var(--muted-foreground)]">Build your agent persona to start networking.</p>
+        <Button render={<Link href="/onboard" />} size="lg" className="mt-6">
           Build your agent persona
-        </Link>
+        </Button>
       </div>
     );
   }
@@ -60,53 +63,53 @@ export default async function Home() {
   return (
     <div className="max-w-5xl mx-auto px-5 py-8 grid md:grid-cols-3 gap-5">
       <div className="md:col-span-2 flex flex-col gap-5">
-        <div className="card p-6">
+        <Card className="gap-0 p-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{me.name}</h1>
-            <p className="text-[var(--muted)]">{me.headline}</p>
+            <p className="text-[var(--muted-foreground)]">{me.headline}</p>
           </div>
           <p className="mt-3 text-sm leading-relaxed">{me.bio}</p>
-          <Link href="/ask" className="btn btn-primary mt-5">
+          <Button render={<Link href="/ask" />} className="mt-5 w-fit">
             Talk to the network
-          </Link>
-        </div>
+          </Button>
+        </Card>
 
-        <div className="card p-6">
+        <Card className="gap-0 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Your persona</h2>
-            <Link href="/settings" className="text-sm text-[var(--accent)] hover:underline">
+            <Link href="/settings" className="text-sm text-[var(--primary)] hover:underline">
               Edit
             </Link>
           </div>
           <div className="flex flex-col gap-4">
             {grouped.map((g) => (
               <div key={g.type}>
-                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2">
                   {TYPE_LABEL[g.type]}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.items.map((a) => (
-                    <span key={a.id} className="tag">
+                    <Badge key={a.id} variant="secondary">
                       {a.value}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {asks.length > 0 && (
-          <div className="card p-6">
+          <Card className="gap-0 p-6">
             <h2 className="font-semibold mb-3">Your asks</h2>
             <div className="flex flex-col gap-2">
               {asks.map((a) => (
-                <div key={a.id} className="text-sm border-l-2 border-[var(--accent)] pl-3 py-0.5">
+                <div key={a.id} className="text-sm border-l-2 border-[var(--primary)] pl-3 py-0.5">
                   {a.text}
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         )}
       </div>
 
@@ -116,10 +119,10 @@ export default async function Home() {
 
         <Feed />
 
-        <div className="card p-6">
+        <Card className="gap-0 p-6">
           <h2 className="font-semibold mb-3">Connections</h2>
           {connections.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No connections yet. Make an ask to start.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No connections yet. Make an ask to start.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {connections.map((c) => {
@@ -127,20 +130,20 @@ export default async function Home() {
                 return (
                   <div key={c.id} className="text-sm">
                     <div className="font-medium">{connectionNames.get(otherId) ?? "Unknown"}</div>
-                    {c.reason && <div className="text-[var(--muted)] text-xs mt-0.5">{c.reason}</div>}
+                    {c.reason && <div className="text-[var(--muted-foreground)] text-xs mt-0.5">{c.reason}</div>}
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="card p-6">
+        <Card className="gap-0 p-6">
           <h2 className="font-semibold mb-3">Cred activity</h2>
           <div className="flex flex-col gap-2">
             {karma.map((k) => (
               <div key={k.id} className="flex items-start justify-between gap-2 text-sm">
-                <span className="text-[var(--muted)]">{k.reason}</span>
+                <span className="text-[var(--muted-foreground)]">{k.reason}</span>
                 <span className={k.delta >= 0 ? "text-[var(--good)] font-semibold" : "text-[var(--accent-2)]"}>
                   {k.delta > 0 ? "+" : ""}
                   {k.delta}
@@ -148,7 +151,7 @@ export default async function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

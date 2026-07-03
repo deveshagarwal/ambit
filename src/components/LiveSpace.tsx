@@ -308,7 +308,7 @@ export default function LiveSpace({ height = 520 }: { height?: number }) {
   return (
     <div ref={wrapRef} className="relative w-full" style={{ height }}>
       <canvas ref={canvasRef} className="block w-full cursor-grab active:cursor-grabbing" />
-      <div className="absolute bottom-3 right-4 text-[11px] text-[var(--muted)] pointer-events-none">
+      <div className="absolute bottom-3 right-4 text-[11px] text-[var(--muted-foreground)] pointer-events-none">
         drag to rotate
       </div>
     </div>

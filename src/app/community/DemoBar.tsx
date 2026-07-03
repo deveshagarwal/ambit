@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Option {
   id: string;
@@ -45,8 +47,8 @@ export default function DemoBar({
   }
 
   return (
-    <div className="card p-4 flex flex-wrap items-center gap-3 mb-6 bg-[var(--accent-soft)] border-[var(--accent)]/30">
-      <span className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+    <Card className="p-4 flex-row flex-wrap items-center gap-3 mb-6 bg-[var(--accent-soft)] border-[var(--primary)]/30">
+      <span className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
         Demo sandbox
       </span>
       <label className="text-sm flex items-center gap-2">
@@ -67,9 +69,9 @@ export default function DemoBar({
           ))}
         </select>
       </label>
-      <button onClick={reseed} disabled={busy} className="btn btn-ghost text-sm !py-1.5 ml-auto">
+      <Button variant="outline" size="sm" onClick={reseed} disabled={busy} className="ml-auto">
         {busy ? "…" : "Reseed sandbox"}
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }

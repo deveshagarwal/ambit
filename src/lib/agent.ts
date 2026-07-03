@@ -7,6 +7,63 @@ export interface ChatMsg {
   content: string;
 }
 
+// Tappable answer suggestions for a given onboarding question, personalized off
+// the imported profile + what the member has said so far. Latency-sensitive (the
+// chips should pop in under a second), so it runs through the FAST_MODEL. Returns
+// [] on no key / bad output; the client falls back to static placeholder chips.
+export interface FollowupInput {
+  key: "needs" | "meet" | "offer";
+  question: string;
+  imported: { headline: string; skills: string; industries: string; contribute: string };
+  answers: Partial<Record<"needs" | "meet" | "offer", string>>;
+}
+
+const FOLLOWUP_INTENT: Record<FollowupInput["key"], string> = {
+  needs: "goals they want to get out of their network right now",
+  meet: "specific types of people who would be most valuable for them to meet",
+  offer: "things they could help other members with",
+};
+
+export async function suggestFollowups(input: FollowupInput): Promise<string[]> {
+  if (!aiEnabled()) return [];
+  const priorAnswers = Object.entries(input.answers)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
+  try {
+    const raw = await chatJSON<{ suggestions?: unknown }>(
+      [
+        {
+          role: "system",
+          content: `You generate short, tappable answer suggestions for a new member's onboarding chat on Ambit, an autonomous networking community.
+Given their imported profile and the question the agent just asked, return 3-4 concrete, personalized suggestions the member could tap as their answer.
+Each suggestion is 2-6 words, specific to their background, no trailing punctuation. Return JSON: { "suggestions": string[] }.`,
+        },
+        {
+          role: "user",
+          content: `Profile:
+headline: ${input.imported.headline}
+skills: ${input.imported.skills}
+industries: ${input.imported.industries}
+can offer: ${input.imported.contribute}
+${priorAnswers ? `\nWhat they've said so far:\n${priorAnswers}` : ""}
+
+The agent just asked: "${input.question}"
+This question is about their ${FOLLOWUP_INTENT[input.key]}.`,
+        },
+      ],
+      { fast: true, temperature: 0.6 },
+    );
+    if (!Array.isArray(raw?.suggestions)) return [];
+    return raw.suggestions
+      .filter((s): s is string => typeof s === "string")
+      .map((s) => s.trim().replace(/[.…]+$/, ""))
+      .filter(Boolean)
+      .slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
 export async function parseNeed(text: string): Promise<NeedParse> {
   if (!aiEnabled()) {
     return {

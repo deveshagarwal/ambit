@@ -4,6 +4,8 @@ import { getCurrentMemberId, sandboxEnabled } from "@/lib/session";
 import type { Attribute } from "@/lib/types";
 import DemoBar from "./DemoBar";
 import LiveSpace from "@/components/LiveSpace";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default async function Community() {
   await ensureSeeded();
@@ -21,7 +23,7 @@ export default async function Community() {
       <div className="flex items-end justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">The latent space</h1>
-          <p className="text-[var(--muted)] mt-1">
+          <p className="text-[var(--muted-foreground)] mt-1">
             {members.length} members embedded by what they offer and need. Your node
             is white; lines run to your nearest neighbors.
           </p>
@@ -48,16 +50,16 @@ export default async function Community() {
           const skills = attrs.filter((a) => a.type === "skill").slice(0, 3);
           const chips = (offers.length ? offers : skills).slice(0, 4);
           return (
-            <div
+            <Card
               key={m.id}
-              className={`card p-5 ${m.id === currentId ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : ""}`}
+              className={`gap-0 p-5 ${m.id === currentId ? "border-[var(--primary)] ring-1 ring-[var(--primary)]" : ""}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold flex items-center gap-2">
                     {m.name}
                     {m.id === currentId && (
-                      <span className="text-[10px] font-semibold text-[var(--accent)] bg-[var(--surface)] border border-[var(--accent)] rounded px-1.5 py-0.5">
+                      <span className="text-[10px] font-semibold text-[var(--primary)] bg-[var(--surface)] border border-[var(--primary)] rounded px-1.5 py-0.5">
                         you
                       </span>
                     )}
@@ -65,23 +67,23 @@ export default async function Community() {
                       <span className="text-[10px] font-semibold text-[var(--good)]">real</span>
                     )}
                   </div>
-                  <div className="text-sm text-[var(--muted)]">{m.headline}</div>
+                  <div className="text-sm text-[var(--muted-foreground)]">{m.headline}</div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-bold text-[var(--karma)]">{m.karma}</div>
-                  <div className="text-[10px] text-[var(--muted)]">karma</div>
+                  <div className="text-[10px] text-[var(--muted-foreground)]">karma</div>
                 </div>
               </div>
               {chips.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {chips.map((a) => (
-                    <span key={a.id} className="tag">
+                    <Badge key={a.id} variant="secondary">
                       {a.value}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>

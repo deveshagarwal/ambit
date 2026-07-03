@@ -1,4 +1,5 @@
 import { credTier, nextTier, tierProgress } from "@/lib/cred";
+import { Card } from "@/components/ui/card";
 
 // Pure presentational. The raw karma number becomes legible standing: a tier,
 // a reciprocity blurb, and visible progress toward the next rung.
@@ -32,10 +33,10 @@ export default function CredBadge({
   }
 
   return (
-    <div className="card p-6">
+    <Card className="gap-0 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
             Your standing
           </div>
           <div className="mt-1 text-2xl font-bold tracking-tight" style={{ color: tier.color }}>
@@ -44,11 +45,11 @@ export default function CredBadge({
         </div>
         <div className="text-right shrink-0">
           <div className="text-2xl font-bold text-[var(--karma)]">{karma} ☼</div>
-          <div className="text-xs text-[var(--muted)]">cred</div>
+          <div className="text-xs text-[var(--muted-foreground)]">cred</div>
         </div>
       </div>
 
-      <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">{tier.standing}</p>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">{tier.standing}</p>
 
       <div className="mt-5">
         <div
@@ -64,7 +65,7 @@ export default function CredBadge({
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-xs">
-          <span className="text-[var(--muted)]">
+          <span className="text-[var(--muted-foreground)]">
             {next ? `${remaining} cred to ${next.name}` : "Top tier"}
           </span>
           {next && (
@@ -74,6 +75,6 @@ export default function CredBadge({
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
