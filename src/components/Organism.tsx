@@ -62,6 +62,8 @@ export default function Organism({ placeholder }: OrganismProps) {
   const [thinking, setThinking] = useState(false);
   const [needAuth, setNeedAuth] = useState(false);
   const [connected, setConnected] = useState<Record<string, "sent" | "connected">>({});
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [introError, setIntroError] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,39 +88,66 @@ export default function Organism({ placeholder }: OrganismProps) {
     setText("");
     setThinking(true);
 
-    const res = await fetch("/api/organism", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ history }),
-    });
+    try {
+      const res = await fetch("/api/organism", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ history }),
+      });
 
-    if (res.status === 401) {
-      setNeedAuth(true);
+      if (res.status === 401) {
+        setNeedAuth(true);
+        return;
+      }
+      if (!res.ok) throw new Error(`organism ${res.status}`);
+
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.reply ?? "I'm here. Tell me more.",
+          matches: data.matches && data.matches.length > 0 ? data.matches : undefined,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Something went wrong reaching the network. Give it another try in a moment.",
+        },
+      ]);
+    } finally {
       setThinking(false);
-      return;
     }
-
-    const data = await res.json();
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: data.reply ?? "I'm here. Tell me more.",
-        matches: data.matches && data.matches.length > 0 ? data.matches : undefined,
-      },
-    ]);
-    setThinking(false);
   }
 
   async function requestIntro(m: Match) {
-    const res = await fetch("/api/connect", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ toMemberId: m.member.id, reason: m.reason, askId: null }),
-    });
-    if (res.ok) {
+    if (connected[m.member.id] || pending[m.member.id]) return;
+    setPending((p) => ({ ...p, [m.member.id]: true }));
+    try {
+      const res = await fetch("/api/connect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ toMemberId: m.member.id, reason: m.reason, askId: null }),
+      });
       const data = await res.json().catch(() => ({}));
-      setConnected((c) => ({ ...c, [m.member.id]: data.accepted ? "connected" : "sent" }));
+      if (res.ok) {
+        setConnected((c) => ({ ...c, [m.member.id]: data.accepted ? "connected" : "sent" }));
+      } else if (res.status === 409) {
+        // Already connected or already pending: reflect the real state.
+        setConnected((c) => ({
+          ...c,
+          [m.member.id]: data.error === "already connected" ? "connected" : "sent",
+        }));
+      } else {
+        setIntroError((e) => ({ ...e, [m.member.id]: "Couldn't send that. Try again." }));
+      }
+    } catch {
+      setIntroError((e) => ({ ...e, [m.member.id]: "Couldn't send that. Try again." }));
+    } finally {
+      setPending((p) => ({ ...p, [m.member.id]: false }));
     }
   }
 
@@ -210,12 +239,20 @@ export default function Organism({ placeholder }: OrganismProps) {
                                     <CheckIcon /> Intro requested — they&apos;ll see it in their inbox
                                   </span>
                                 ) : (
-                                  <button
-                                    onClick={() => requestIntro(mt)}
-                                    className="text-xs font-semibold text-[var(--primary)] hover:underline"
-                                  >
-                                    Request intro →
-                                  </button>
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      onClick={() => requestIntro(mt)}
+                                      disabled={pending[mt.member.id]}
+                                      className="text-xs font-semibold text-[var(--primary)] hover:underline disabled:opacity-60 disabled:no-underline"
+                                    >
+                                      {pending[mt.member.id] ? "Sending…" : "Request intro →"}
+                                    </button>
+                                    {introError[mt.member.id] && (
+                                      <span className="text-xs text-[var(--accent-2)]">
+                                        {introError[mt.member.id]}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </Card>

@@ -132,7 +132,9 @@ export default function Sidebar({
           </>
         ) : (
           <>
-            <SignInButton mode="modal">
+            {/* Hosted redirect (not modal) on purpose: the modal silently fails on
+                domains the Clerk instance doesn't know about; see JoinCTA.tsx. */}
+            <SignInButton fallbackRedirectUrl="/home">
               <Button
                 variant="ghost"
                 size="sm"
@@ -142,7 +144,7 @@ export default function Sidebar({
                 {collapsed ? "In" : "Sign in"}
               </Button>
             </SignInButton>
-            <SignUpButton mode="modal" forceRedirectUrl="/onboard">
+            <SignUpButton forceRedirectUrl="/onboard">
               <Button
                 size="sm"
                 title={collapsed ? "Join the network" : undefined}
