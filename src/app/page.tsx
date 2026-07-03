@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { ensureSeeded } from "@/lib/bootstrap";
 import { getMember } from "@/lib/store/repo";
@@ -11,13 +12,21 @@ import LogoMarquee from "@/components/LogoMarquee";
 export default async function Landing() {
   await ensureSeeded();
   const { userId } = await auth();
-  const id = await getCurrentMemberId();
-  const hasMember = !!(id && (await getMember(id)));
-  // Authenticated with Clerk: always link (never open the sign-up modal while
-  // signed in). Members go to the app; signed-in-but-unlinked go to onboarding.
-  const signedIn = !!userId;
-  const primaryHref = hasMember ? "/ask" : "/onboard";
-  const primaryLabel = hasMember ? landing.hero.ctaSignedIn : landing.hero.ctaJoin;
+
+  // Signed in: skip the marketing page entirely and drop them into the real
+  // interface. Members go to the app; a signed-in account without a member yet
+  // still needs to build its agent, so it goes to onboarding.
+  if (userId) {
+    const id = await getCurrentMemberId();
+    const hasMember = !!(id && (await getMember(id)));
+    redirect(hasMember ? "/home" : "/onboard");
+  }
+
+  // Signed out below: the landing page markets to visitors and the CTA opens
+  // Clerk sign-up (which then routes into onboarding).
+  const signedIn = false;
+  const primaryHref = "/onboard";
+  const primaryLabel = landing.hero.ctaJoin;
 
   return (
     <div className="min-h-screen bg-background text-foreground">

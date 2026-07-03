@@ -11,10 +11,11 @@ import { Button } from "@/components/ui/button";
 const STORAGE_KEY = "ambit:sidebar-collapsed";
 
 // Perplexity-style left rail. Collapses to an icons-only strip; the choice is
-// persisted in localStorage. The landing hero is full-bleed, so the rail is
-// hidden on "/" (mirrors the old NavBar). signedIn (Clerk, server-computed)
-// drives the auth controls; me is the linked Ambit member (may be null right
-// after sign-up).
+// persisted in localStorage. The rail is hidden on the full-bleed landing hero
+// ("/") and on the onboarding flow ("/onboard"), which is a standalone gate the
+// user passes through before reaching the dashboard. signedIn (Clerk,
+// server-computed) drives the auth controls; me is the linked Ambit member (may
+// be null right after sign-up).
 export default function Sidebar({
   signedIn,
   me,
@@ -39,7 +40,7 @@ export default function Sidebar({
     });
   }
 
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/onboard") return null;
 
   const navItems = [
     { href: "/ask", label: "Ask", icon: <AskIcon /> },
@@ -104,16 +105,25 @@ export default function Sidebar({
             {me ? (
               <Link
                 href="/home"
-                title={collapsed ? me.name : undefined}
+                title={collapsed ? `${me.name} · ${me.karma} cred` : undefined}
                 className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--accent-soft)] ${
                   collapsed ? "justify-center" : ""
                 }`}
               >
-                <CredBadge karma={me.karma} size="sm" />
-                {!collapsed && (
-                  <span className="font-medium text-sm truncate">
-                    {me.name.split(" ")[0]}
+                {collapsed ? (
+                  <span
+                    className="inline-flex items-center justify-center rounded-full text-xs font-semibold leading-none px-1.5 py-1 whitespace-nowrap"
+                    style={{ color: "var(--karma)" }}
+                  >
+                    {me.karma} ☼
                   </span>
+                ) : (
+                  <>
+                    <CredBadge karma={me.karma} size="sm" />
+                    <span className="font-medium text-sm truncate">
+                      {me.name.split(" ")[0]}
+                    </span>
+                  </>
                 )}
               </Link>
             ) : (

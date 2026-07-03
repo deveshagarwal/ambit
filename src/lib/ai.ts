@@ -5,6 +5,9 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 const API_KEY = process.env.AI_API_KEY ?? process.env.DEEPSEEK_API_KEY ?? "";
 const BASE_URL = process.env.AI_BASE_URL ?? "https://api.deepseek.com";
 const MODEL = process.env.AI_MODEL ?? "deepseek-chat";
+// Latency-sensitive calls (e.g. onboarding suggestion chips) can point at a
+// faster/smaller model without changing the main one. Defaults to MODEL.
+const FAST_MODEL = process.env.AI_FAST_MODEL ?? MODEL;
 
 export function aiEnabled(): boolean {
   return API_KEY.length > 0;
@@ -29,12 +32,13 @@ export async function chat(
 }
 
 // Asks the model for JSON and parses it. Throws on bad output so callers can fall back.
+// Pass `fast: true` to route through FAST_MODEL for latency-sensitive calls.
 export async function chatJSON<T>(
   messages: ChatCompletionMessageParam[],
-  opts: { temperature?: number } = {},
+  opts: { temperature?: number; fast?: boolean } = {},
 ): Promise<T> {
   const res = await client().chat.completions.create({
-    model: MODEL,
+    model: opts.fast ? FAST_MODEL : MODEL,
     messages,
     temperature: opts.temperature ?? 0.3,
     response_format: { type: "json_object" },
