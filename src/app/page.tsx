@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignInButton } from "@clerk/nextjs";
 import { ensureSeeded } from "@/lib/bootstrap";
 import { getMember } from "@/lib/store/repo";
 import { getCurrentMemberId } from "@/lib/session";
@@ -30,7 +31,21 @@ export default async function Landing() {
           <div className="flex items-center gap-2 font-serif font-semibold text-xl tracking-tight">
             <Logo size={22} className="text-foreground" /> Ambit
           </div>
-          <Button render={<Link href={primaryHref} />}>{primaryLabel}</Button>
+          <div className="flex items-center gap-5">
+            {!signedIn && (
+              <SignInButton fallbackRedirectUrl="/home">
+                <button
+                  type="button"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Sign in
+                </button>
+              </SignInButton>
+            )}
+            <Button render={<Link href={primaryHref} />} variant={signedIn ? "default" : "outline"}>
+              {primaryLabel}
+            </Button>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-5 pt-16 sm:pt-20 flex flex-col items-center gap-14 xl:flex-row xl:items-center xl:gap-10">
@@ -60,7 +75,7 @@ export default async function Landing() {
                   signedIn={false}
                   href="/onboard"
                   label={landing.hero.inviteLink}
-                  className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
+                  className="font-medium text-foreground underline-offset-4 hover:underline cursor-pointer"
                 />
               </p>
             )}
@@ -92,7 +107,7 @@ export default async function Landing() {
                 signedIn={false}
                 href="/onboard"
                 label={landing.hero.inviteLink}
-                className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
+                className="font-medium text-foreground underline-offset-4 hover:underline cursor-pointer"
               />
             </p>
           </div>
