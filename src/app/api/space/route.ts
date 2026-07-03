@@ -12,15 +12,14 @@ export async function GET() {
   const [coords, members] = await Promise.all([projectAll(), listMembers()]);
   const coordById = new Map(coords.map((c) => [c.id, c]));
 
+  // Anonymous by design: this powers a public vector-space visual, so it exposes
+  // only positions + a color, never names/headlines/identifying details.
   const points = members
     .map((m) => {
       const c = coordById.get(m.id);
       if (!c) return null;
       return {
         id: m.id,
-        name: m.name,
-        headline: m.headline,
-        karma: m.karma,
         x: c.x,
         y: c.y,
         z: c.z,

@@ -57,5 +57,7 @@ export async function POST(req: Request) {
   );
   if (isNew) await awardJoin(member.id);
 
+  // Onboarding builds the account/persona only. The member creates their actual
+  // requests later, from their home — so we don't auto-create an ask here.
   return NextResponse.json({ member: await getMember(member.id), profile });
 }

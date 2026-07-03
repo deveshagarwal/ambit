@@ -3,9 +3,14 @@ import { allAttributes, listMembers } from "@/lib/store/repo";
 import { getCurrentMemberId, sandboxEnabled } from "@/lib/session";
 import type { Attribute } from "@/lib/types";
 import DemoBar from "./DemoBar";
-import LiveSpace from "@/components/LiveSpace";
+import EmbeddingSpace from "@/components/EmbeddingSpace";
+import ContactButton from "@/components/ContactButton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+// Blurred dummy names — never a real member name, just so each card reads as
+// "there's a person here, hidden" until you connect.
+const NAME_MASKS = ["Jordan Rivera", "Alex Morgan", "Sam Taylor", "Casey Lee", "Riley Chen", "Devon Park"];
 
 export default async function Community() {
   await ensureSeeded();
@@ -24,14 +29,14 @@ export default async function Community() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">The latent space</h1>
           <p className="text-[var(--muted-foreground)] mt-1">
-            {members.length} members embedded by what they offer and need. Your node
-            is white; lines run to your nearest neighbors.
+            {members.length} members, embedded by what they offer and need — clustered in a
+            high-dimensional vector space, projected down so you can see the shape of the network.
           </p>
         </div>
       </div>
 
       <div className="dark-panel rounded-3xl p-3 overflow-hidden mb-6">
-        <LiveSpace height={480} />
+        <EmbeddingSpace mode="ambient" theme="dark" height={480} />
       </div>
 
       {sandboxEnabled() && (
@@ -44,35 +49,37 @@ export default async function Community() {
       )}
 
       <div className="grid sm:grid-cols-2 gap-3">
-        {members.map((m) => {
+        {members.map((m, i) => {
           const attrs = attrsByMember.get(m.id) ?? [];
           const offers = attrs.filter((a) => a.type === "offer").slice(0, 3);
           const skills = attrs.filter((a) => a.type === "skill").slice(0, 3);
           const chips = (offers.length ? offers : skills).slice(0, 4);
+          const isSelf = m.id === currentId;
           return (
             <Card
               key={m.id}
-              className={`gap-0 p-5 ${m.id === currentId ? "border-[var(--primary)] ring-1 ring-[var(--primary)]" : ""}`}
+              className={`gap-0 p-5 ${isSelf ? "border-[var(--primary)] ring-1 ring-[var(--primary)]" : ""}`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold flex items-center gap-2">
-                    {m.name}
-                    {m.id === currentId && (
-                      <span className="text-[10px] font-semibold text-[var(--primary)] bg-[var(--surface)] border border-[var(--primary)] rounded px-1.5 py-0.5">
-                        you
-                      </span>
-                    )}
-                    {!m.is_synthetic && m.id !== currentId && (
-                      <span className="text-[10px] font-semibold text-[var(--good)]">real</span>
-                    )}
-                  </div>
-                  <div className="text-sm text-[var(--muted-foreground)]">{m.headline}</div>
+              <div className="flex items-center gap-3">
+                {/* Blurred avatar — identity revealed on connect */}
+                <div
+                  aria-hidden
+                  className="shrink-0 w-11 h-11 rounded-full blur-[4px] bg-gradient-to-br from-[var(--primary)]/40 to-[var(--border)]"
+                />
+                <div className="min-w-0 flex-1">
+                  {isSelf ? (
+                    <div className="font-semibold text-sm">You</div>
+                  ) : (
+                    <div
+                      aria-hidden
+                      className="font-semibold text-sm blur-[5px] select-none w-fit"
+                    >
+                      {NAME_MASKS[i % NAME_MASKS.length]}
+                    </div>
+                  )}
+                  <div className="text-sm text-[var(--muted-foreground)] truncate">{m.headline}</div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="font-bold text-[var(--karma)]">{m.karma}</div>
-                  <div className="text-[10px] text-[var(--muted-foreground)]">karma</div>
-                </div>
+                {!isSelf && <ContactButton memberId={m.id} />}
               </div>
               {chips.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">

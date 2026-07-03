@@ -9,12 +9,12 @@
 export const landing = {
   hero: {
     // tiny line above the headline
-    kicker: "The anti-LinkedIn · right person, right time",
+    kicker: "The anti-LinkedIn network",
     // headline in three parts: normal, highlighted (italic serif), normal
     headlineLead: "Meet the person who changes ",
     headlineAccent: "everything",
     headlineTail: ".",
-    sub: "The mentor, the collaborator, the one who's already solved what you're stuck on. Ambit learns who you are and what you're after — then introduces you. No feed, no titles, no performing.",
+    sub: "Looking for a cofounder? A mentor? An engineer? Ambit learns who you are and what you need - then introduces you. No feed, no titles, no performing.",
     ctaJoin: "Apply to join", // shown when signed out (opens the waitlist)
     ctaSignedIn: "Ask Ambit", // shown when signed in
     ctaSecondary: "See how it works",

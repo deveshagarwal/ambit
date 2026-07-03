@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { ensureSeeded } from "@/lib/bootstrap";
-import { getMember } from "@/lib/store/repo";
-import { getCurrentMemberId } from "@/lib/session";
 import { landing } from "@/content/landing";
 import Logo from "@/components/Logo";
 import JoinCTA from "@/components/JoinCTA";
@@ -11,15 +9,10 @@ import HeroCarousel from "@/components/HeroCarousel";
 import LogoMarquee from "@/components/LogoMarquee";
 import { Button } from "@/components/ui/button";
 
+// The landing is the same for everyone — no signed-in/out branching. "Sign in"
+// takes returning members straight home; "Expand your ambit" opens sign-up.
 export default async function Landing() {
   await ensureSeeded();
-
-  // Everyone sees the hero. A member (onboarded) gets a CTA straight into the
-  // app; visitors get the invite-only waitlist CTA.
-  const id = await getCurrentMemberId();
-  const signedIn = !!(id && (await getMember(id)));
-  const primaryHref = signedIn ? "/ask" : "#waitlist";
-  const primaryLabel = signedIn ? landing.hero.ctaSignedIn : landing.hero.ctaJoin;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -32,19 +25,17 @@ export default async function Landing() {
             <Logo size={22} className="text-foreground" /> Ambit
           </div>
           <div className="flex items-center gap-5">
-            {!signedIn && (
-              <SignInButton fallbackRedirectUrl="/home">
-                <button
-                  type="button"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign in
-                </button>
-              </SignInButton>
-            )}
-            <Button render={<Link href={primaryHref} />} variant={signedIn ? "default" : "outline"}>
-              {primaryLabel}
-            </Button>
+            <SignInButton forceRedirectUrl="/home">
+              <button
+                type="button"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton forceRedirectUrl="/onboard">
+              <Button variant="outline">{landing.hero.ctaJoin}</Button>
+            </SignUpButton>
           </div>
         </div>
 
@@ -63,22 +54,22 @@ export default async function Landing() {
               {landing.hero.sub}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center xl:justify-start gap-3">
-              <Button render={<Link href={primaryHref} />} size="lg" className="h-11 px-6 text-base">
-                {primaryLabel}
-              </Button>
+              <SignUpButton forceRedirectUrl="/onboard">
+                <Button size="lg" className="h-11 px-6 text-base">
+                  {landing.hero.ctaJoin}
+                </Button>
+              </SignUpButton>
               {/* "See how it works" secondary CTA hidden for now */}
             </div>
-            {!signedIn && (
-              <p className="mt-4 text-sm text-muted-foreground">
-                {landing.hero.invitePrompt}{" "}
-                <JoinCTA
-                  signedIn={false}
-                  href="/onboard"
-                  label={landing.hero.inviteLink}
-                  className="font-medium text-foreground underline-offset-4 hover:underline cursor-pointer"
-                />
-              </p>
-            )}
+            <p className="mt-4 text-sm text-muted-foreground">
+              {landing.hero.invitePrompt}{" "}
+              <Link
+                href="#waitlist"
+                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                {landing.hero.inviteLink}
+              </Link>
+            </p>
           </div>
 
           {/* Right: the intros, with a drifting strip of scenes above them */}
@@ -91,8 +82,7 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* FINAL CTA: waitlist capture (visitors only) */}
-      {!signedIn && (
+      {/* FINAL CTA: waitlist capture */}
       <section id="waitlist" className="max-w-6xl mx-auto px-5 pb-24 scroll-mt-20">
         <div className="rounded-2xl border border-border bg-card px-8 py-14 text-center">
           <h2 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight">
@@ -107,13 +97,12 @@ export default async function Landing() {
                 signedIn={false}
                 href="/onboard"
                 label={landing.hero.inviteLink}
-                className="font-medium text-foreground underline-offset-4 hover:underline cursor-pointer"
+                className="text-muted-foreground underline underline-offset-4 hover:text-foreground cursor-pointer"
               />
             </p>
           </div>
         </div>
       </section>
-      )}
     </div>
   );
 }

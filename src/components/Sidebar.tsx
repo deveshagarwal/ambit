@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import CredBadge from "@/components/CredBadge";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 
@@ -105,25 +104,16 @@ export default function Sidebar({
             {me ? (
               <Link
                 href="/home"
-                title={collapsed ? `${me.name} · ${me.karma} cred` : undefined}
+                title={collapsed ? me.name : undefined}
                 className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--accent-soft)] ${
                   collapsed ? "justify-center" : ""
                 }`}
               >
-                {collapsed ? (
-                  <span
-                    className="inline-flex items-center justify-center rounded-full text-xs font-semibold leading-none px-1.5 py-1 whitespace-nowrap"
-                    style={{ color: "var(--karma)" }}
-                  >
-                    {me.karma} ☼
-                  </span>
-                ) : (
-                  <>
-                    <CredBadge karma={me.karma} size="sm" />
-                    <span className="font-medium text-sm truncate">
-                      {me.name.split(" ")[0]}
-                    </span>
-                  </>
+                <span className="grid place-items-center w-6 h-6 rounded-full bg-muted text-xs font-semibold shrink-0">
+                  {me.name.charAt(0).toUpperCase()}
+                </span>
+                {!collapsed && (
+                  <span className="font-medium text-sm truncate">{me.name.split(" ")[0]}</span>
                 )}
               </Link>
             ) : (
@@ -144,7 +134,7 @@ export default function Sidebar({
           <>
             {/* Hosted redirect (not modal) on purpose: the modal silently fails on
                 domains the Clerk instance doesn't know about; see JoinCTA.tsx. */}
-            <SignInButton fallbackRedirectUrl="/home">
+            <SignInButton forceRedirectUrl="/home">
               <Button
                 variant="ghost"
                 size="sm"

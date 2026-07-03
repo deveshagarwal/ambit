@@ -5,12 +5,11 @@ import {
   getAttributes,
   getAsksFor,
   getConnectionsFor,
-  getKarmaEvents,
   getMember,
 } from "@/lib/store/repo";
 import type { AttributeType } from "@/lib/types";
-import CredBadge from "@/components/CredBadge";
 import Feed from "@/components/Feed";
+import NewRequest from "@/components/NewRequest";
 import RequestsInbox from "@/components/RequestsInbox";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +49,6 @@ export default async function Home() {
   })).filter((g) => g.items.length > 0);
   const asks = await getAsksFor(me.id);
   const connections = await getConnectionsFor(me.id);
-  const karma = await getKarmaEvents(me.id);
   // Resolve the other side of each connection up front (async repo).
   const connectionNames = new Map<string, string>();
   for (const c of connections) {
@@ -63,49 +61,57 @@ export default async function Home() {
   return (
     <div className="max-w-5xl mx-auto px-5 py-8 grid md:grid-cols-3 gap-5">
       <div className="md:col-span-2 flex flex-col gap-5">
+        {/* Profile: name, headline, bio, and the extracted persona in one card */}
         <Card className="gap-0 p-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{me.name}</h1>
-            <p className="text-[var(--muted-foreground)]">{me.headline}</p>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed">{me.bio}</p>
-          <Button render={<Link href="/ask" />} className="mt-5 w-fit">
-            Talk to the network
-          </Button>
-        </Card>
-
-        <Card className="gap-0 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Your persona</h2>
-            <Link href="/settings" className="text-sm text-[var(--primary)] hover:underline">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{me.name}</h1>
+              <p className="text-[var(--muted-foreground)]">{me.headline}</p>
+            </div>
+            <Link
+              href="/settings"
+              className="text-sm text-[var(--primary)] hover:underline shrink-0 mt-1"
+            >
               Edit
             </Link>
           </div>
-          <div className="flex flex-col gap-4">
-            {grouped.map((g) => (
-              <div key={g.type}>
-                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2">
-                  {TYPE_LABEL[g.type]}
+          {me.bio && <p className="mt-3 text-sm leading-relaxed">{me.bio}</p>}
+
+          {grouped.length > 0 && (
+            <div className="mt-5 pt-5 border-t border-border flex flex-col gap-4">
+              {grouped.map((g) => (
+                <div key={g.type}>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2">
+                    {TYPE_LABEL[g.type]}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.items.map((a) => (
+                      <Badge key={a.id} variant="secondary">
+                        {a.value}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.items.map((a) => (
-                    <Badge key={a.id} variant="secondary">
-                      {a.value}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Core action: post a request */}
+        <Card className="gap-0 p-6">
+          <NewRequest />
         </Card>
 
         {asks.length > 0 && (
           <Card className="gap-0 p-6">
-            <h2 className="font-semibold mb-3">Your asks</h2>
-            <div className="flex flex-col gap-2">
+            <h2 className="font-semibold mb-3">Your requests</h2>
+            <div className="flex flex-col gap-3">
               {asks.map((a) => (
-                <div key={a.id} className="text-sm border-l-2 border-[var(--primary)] pl-3 py-0.5">
-                  {a.text}
+                <div key={a.id} className="border-l-2 border-[var(--primary)] pl-3 py-0.5">
+                  <div className="text-sm">{a.text}</div>
+                  <div className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                    Finding the right people — we&rsquo;ll introduce you.
+                  </div>
                 </div>
               ))}
             </div>
@@ -115,14 +121,13 @@ export default async function Home() {
 
       <div className="flex flex-col gap-5">
         <RequestsInbox />
-        <CredBadge karma={me.karma} size="lg" />
 
         <Feed />
 
         <Card className="gap-0 p-6">
           <h2 className="font-semibold mb-3">Connections</h2>
           {connections.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">No connections yet. Make an ask to start.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No connections yet. Post a request to start.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {connections.map((c) => {
@@ -136,21 +141,6 @@ export default async function Home() {
               })}
             </div>
           )}
-        </Card>
-
-        <Card className="gap-0 p-6">
-          <h2 className="font-semibold mb-3">Cred activity</h2>
-          <div className="flex flex-col gap-2">
-            {karma.map((k) => (
-              <div key={k.id} className="flex items-start justify-between gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)]">{k.reason}</span>
-                <span className={k.delta >= 0 ? "text-[var(--good)] font-semibold" : "text-[var(--accent-2)]"}>
-                  {k.delta > 0 ? "+" : ""}
-                  {k.delta}
-                </span>
-              </div>
-            ))}
-          </div>
         </Card>
       </div>
     </div>
