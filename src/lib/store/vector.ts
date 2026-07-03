@@ -1,4 +1,4 @@
-import { allAttributes, listMembers, memberCount } from "./repo";
+import { allAttributes, graphVersion, listMembers } from "./repo";
 import { keywordTags } from "../text";
 import type { AttributeType } from "../types";
 
@@ -24,7 +24,7 @@ const OFFER_WEIGHT: Partial<Record<AttributeType, number>> = {
 const HEADLINE_WEIGHT = 0.6;
 
 interface Index {
-  count: number;
+  version: string;
   idf: Map<string, number>;
   vectors: Map<string, Sparse>;
 }
@@ -39,7 +39,7 @@ function normalize(v: Sparse): Sparse {
   return v;
 }
 
-async function build(): Promise<Index> {
+async function build(version: string): Promise<Index> {
   const members = await listMembers();
   const attrs = await allAttributes();
 
@@ -72,12 +72,12 @@ async function build(): Promise<Index> {
     vectors.set(member, normalize(v));
   }
 
-  return { count: members.length, idf, vectors };
+  return { version, idf, vectors };
 }
 
 async function index(): Promise<Index> {
-  const count = await memberCount();
-  if (!cache || cache.count !== count) cache = await build();
+  const version = await graphVersion();
+  if (!cache || cache.version !== version) cache = await build(version);
   return cache;
 }
 

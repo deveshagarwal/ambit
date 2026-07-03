@@ -3,7 +3,7 @@
 // Ambit is a SOCIAL INTELLIGENCE LAYER: it learns who you are and what you're
 // into, then quietly finds your scene, your collaborators, your next obsession,
 // and the people who make your life bigger. Warm and human, not corporate.
-// Edit the words inside the quotes. Leave the ${count} pieces as-is.
+// Edit the words inside the quotes.
 // ============================================================================
 
 export const landing = {
@@ -15,9 +15,11 @@ export const landing = {
     headlineAccent: "everything",
     headlineTail: ".",
     sub: "The mentor, the collaborator, the one who's already solved what you're stuck on. Ambit learns who you are and what you're after — then introduces you. No feed, no titles, no performing.",
-    ctaJoin: "Apply to join", // shown when signed out
+    ctaJoin: "Apply to join", // shown when signed out (opens the waitlist)
     ctaSignedIn: "Ask Ambit", // shown when signed in
     ctaSecondary: "See how it works",
+    invitePrompt: "Have an invite code?", // small link next to the primary CTA
+    inviteLink: "Sign up",
   },
 
   ask: {
@@ -105,8 +107,7 @@ export const landing = {
 
   cta: {
     heading: "Go find the people who make your life bigger.",
-    sub: (count: number) =>
-      `Join thousands of people letting Ambit find their scene.`,
+    sub: "Ambit is invite-only while the network grows. Leave your email and we'll send an invite as spots open.",
   },
 
   footer: "A social intelligence layer for the rest of your life.",

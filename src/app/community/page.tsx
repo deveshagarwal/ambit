@@ -1,6 +1,6 @@
 import { ensureSeeded } from "@/lib/bootstrap";
 import { allAttributes, listMembers } from "@/lib/store/repo";
-import { getCurrentMemberId } from "@/lib/session";
+import { getCurrentMemberId, sandboxEnabled } from "@/lib/session";
 import type { Attribute } from "@/lib/types";
 import DemoBar from "./DemoBar";
 import LiveSpace from "@/components/LiveSpace";
@@ -34,10 +34,14 @@ export default async function Community() {
         <LiveSpace height={480} />
       </div>
 
-      <DemoBar
-        options={members.map((m) => ({ id: m.id, name: m.name, headline: m.headline }))}
-        currentId={currentId}
-      />
+      {sandboxEnabled() && (
+        <DemoBar
+          options={members
+            .filter((m) => m.is_synthetic)
+            .map((m) => ({ id: m.id, name: m.name, headline: m.headline }))}
+          currentId={currentId}
+        />
+      )}
 
       <div className="grid sm:grid-cols-2 gap-3">
         {members.map((m) => {

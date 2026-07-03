@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  areConnected,
   createConnection,
   createIntroRequest,
   getMember,
   logOutcome,
+  pendingRequestExists,
   setRequestStatus,
 } from "@/lib/store/repo";
 import { awardConnection } from "@/lib/karma";
@@ -30,6 +32,16 @@ export async function POST(req: Request) {
   }
   if (toMemberId === memberId) {
     return NextResponse.json({ error: "cannot request yourself" }, { status: 400 });
+  }
+
+  // Idempotency / anti-farming: don't stack duplicate connections or requests.
+  // Without this, repeatedly clicking connect on a synthetic member auto-accepts
+  // each time and farms karma unboundedly.
+  if (await areConnected(memberId, toMemberId)) {
+    return NextResponse.json({ error: "already connected" }, { status: 409 });
+  }
+  if (await pendingRequestExists(memberId, toMemberId)) {
+    return NextResponse.json({ error: "request already pending" }, { status: 409 });
   }
 
   const request = await createIntroRequest({

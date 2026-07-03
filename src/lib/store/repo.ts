@@ -59,6 +59,23 @@ export async function memberCount(): Promise<number> {
   return r?.c ?? 0;
 }
 
+// A cheap fingerprint of the graph's matchable state: member count, active-edge
+// count, and the newest add/invalidate timestamp. Any profile change (new member,
+// added fact, invalidated fact, re-onboard) changes it, so caches keyed on this
+// rebuild when they should — unlike keying on member count alone, which misses
+// every persona edit.
+export async function graphVersion(): Promise<string> {
+  const r = await queryOne<{ m: number; e: number; t: string }>(
+    `SELECT
+       (SELECT COUNT(*) FROM members)::int AS m,
+       (SELECT COUNT(*) FROM edges WHERE invalidated_at IS NULL)::int AS e,
+       COALESCE(
+         (SELECT EXTRACT(EPOCH FROM GREATEST(MAX(recorded_at), MAX(invalidated_at)))::bigint
+          FROM edges), 0) AS t`,
+  );
+  return `${r?.m ?? 0}:${r?.e ?? 0}:${r?.t ?? 0}`;
+}
+
 // ---- Facts (reified, confidence-scored, bitemporal edges) ----
 // Exposed in the legacy Attribute shape (type = predicate, value = object_value)
 // so callers do not need to know about the edge model.
@@ -188,6 +205,17 @@ export async function createConnection(input: {
   return row!;
 }
 
+// True if the two members are already connected (in either direction).
+export async function areConnected(a: string, b: string): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM connections
+     WHERE (from_member = $1 AND to_member = $2) OR (from_member = $2 AND to_member = $1)
+     LIMIT 1`,
+    [a, b],
+  );
+  return !!row;
+}
+
 export async function getConnectionsFor(memberId: string): Promise<Connection[]> {
   return query<Connection>(
     `SELECT ${CONN_COLS} FROM connections
@@ -256,6 +284,16 @@ export async function createIntroRequest(input: {
   return row!;
 }
 
+// True if there is already a pending request from -> to (avoid duplicates).
+export async function pendingRequestExists(from: string, to: string): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `SELECT id FROM intro_requests
+     WHERE from_member = $1 AND to_member = $2 AND status = 'pending' LIMIT 1`,
+    [from, to],
+  );
+  return !!row;
+}
+
 export async function getIntroRequest(id: string): Promise<IntroRequest | undefined> {
   return queryOne<IntroRequest>(
     `SELECT id, from_member, to_member, reason, ask_id, status, created_at::text AS created_at
@@ -278,14 +316,21 @@ export async function incomingRequests(
   );
 }
 
+// Flip a request from pending to accepted/declined. Compare-and-set: only a
+// still-pending request is updated, and we return whether THIS call did it, so
+// two concurrent accepts (e.g. a double-click) can't both create a connection
+// and double-award karma.
 export async function setRequestStatus(
   id: string,
   status: "accepted" | "declined",
-): Promise<void> {
-  await query(
-    `UPDATE intro_requests SET status = $2, responded_at = now() WHERE id = $1`,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE intro_requests SET status = $2, responded_at = now()
+     WHERE id = $1 AND status = 'pending'
+     RETURNING id`,
     [id, status],
   );
+  return !!row;
 }
 
 // ---- Outcomes (the feedback-loop log) ----
@@ -309,6 +354,17 @@ export async function logOutcome(input: {
       input.score ?? null,
     ],
   );
+}
+
+// Targets who already declined this asker's intro request. Cheap read of the
+// outcomes log so matching stops re-surfacing people who said no.
+export async function declinedTargetIds(askerId: string): Promise<string[]> {
+  const rows = await query<{ target_id: string }>(
+    `SELECT DISTINCT target_id FROM outcomes
+     WHERE asker_id = $1 AND action = 'declined' AND target_id IS NOT NULL`,
+    [askerId],
+  );
+  return rows.map((r) => r.target_id);
 }
 
 export async function recentActivity(limit = 12): Promise<

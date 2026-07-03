@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { ensureSeeded } from "@/lib/bootstrap";
@@ -6,8 +7,10 @@ import { getCurrentMemberId } from "@/lib/session";
 import { landing } from "@/content/landing";
 import Logo from "@/components/Logo";
 import JoinCTA from "@/components/JoinCTA";
+import Waitlist from "@/components/Waitlist";
 import HeroCarousel from "@/components/HeroCarousel";
 import LogoMarquee from "@/components/LogoMarquee";
+import { Button } from "@/components/ui/button";
 
 export default async function Landing() {
   await ensureSeeded();
@@ -22,12 +25,9 @@ export default async function Landing() {
     redirect(hasMember ? "/home" : "/onboard");
   }
 
-  // Signed out below: the landing page markets to visitors and the CTA opens
-  // Clerk sign-up (which then routes into onboarding).
-  const signedIn = false;
-  const primaryHref = "/onboard";
-  const primaryLabel = landing.hero.ctaJoin;
-
+  // Signed out below: the landing markets to visitors. Ambit is invite-only, so
+  // the primary CTA lands on the waitlist; an invite code (via the small sign-up
+  // link) is the only way straight into onboarding.
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* HERO: editorial, light. Two columns — the pitch on the left, a fanned
@@ -38,7 +38,7 @@ export default async function Landing() {
           <div className="flex items-center gap-2 font-serif font-semibold text-xl tracking-tight">
             <Logo size={22} className="text-foreground" /> Ambit
           </div>
-          <JoinCTA signedIn={signedIn} href={primaryHref} label={primaryLabel} />
+          <Button render={<Link href="#waitlist" />}>{landing.hero.ctaJoin}</Button>
         </div>
 
         <div className="max-w-6xl mx-auto px-5 pt-16 sm:pt-20 flex flex-col items-center gap-14 xl:flex-row xl:items-center xl:gap-10">
@@ -56,15 +56,20 @@ export default async function Landing() {
               {landing.hero.sub}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center xl:justify-start gap-3">
-              <JoinCTA
-                signedIn={signedIn}
-                href={primaryHref}
-                label={primaryLabel}
-                size="lg"
-                className="h-11 px-6 text-base"
-              />
+              <Button render={<Link href="#waitlist" />} size="lg" className="h-11 px-6 text-base">
+                {landing.hero.ctaJoin}
+              </Button>
               {/* "See how it works" secondary CTA hidden for now */}
             </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              {landing.hero.invitePrompt}{" "}
+              <JoinCTA
+                signedIn={false}
+                href="/onboard"
+                label={landing.hero.inviteLink}
+                className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
+              />
+            </p>
           </div>
 
           {/* Right: the intros, with a drifting strip of scenes above them */}
@@ -73,6 +78,28 @@ export default async function Landing() {
             <div id="intros" className="w-full scroll-mt-24">
               <HeroCarousel />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA: waitlist capture */}
+      <section id="waitlist" className="max-w-6xl mx-auto px-5 pb-24 scroll-mt-20">
+        <div className="rounded-2xl border border-border bg-card px-8 py-14 text-center">
+          <h2 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight">
+            {landing.cta.heading}
+          </h2>
+          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">{landing.cta.sub}</p>
+          <div className="mt-7">
+            <Waitlist />
+            <p className="mt-3 text-xs text-muted-foreground">
+              {landing.hero.invitePrompt}{" "}
+              <JoinCTA
+                signedIn={false}
+                href="/onboard"
+                label={landing.hero.inviteLink}
+                className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
+              />
+            </p>
           </div>
         </div>
       </section>

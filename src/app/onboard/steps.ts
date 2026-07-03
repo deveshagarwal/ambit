@@ -1,7 +1,7 @@
 // Shared data + scripts for the onboarding flow. Kept out of the page component
 // so the flow reads top-down and the copy is easy to tweak.
 
-export type Phase = "connect" | "analyzing" | "goals" | "building" | "waitlist";
+export type Phase = "connect" | "analyzing" | "goals" | "building" | "enter";
 
 // What the (simulated) LinkedIn import fills in before the goals interview.
 // Once a real LinkedIn connection exists this is the shape we map onto.

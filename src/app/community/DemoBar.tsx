@@ -24,20 +24,26 @@ export default function DemoBar({
   async function actAs(id: string) {
     if (!id) return;
     setBusy(true);
-    await fetch("/api/session", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ memberId: id }),
-    });
-    router.refresh();
-    setBusy(false);
+    try {
+      await fetch("/api/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ memberId: id }),
+      });
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function reseed() {
     setBusy(true);
-    await fetch("/api/sandbox", { method: "POST" });
-    router.refresh();
-    setBusy(false);
+    try {
+      await fetch("/api/sandbox", { method: "POST" });
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

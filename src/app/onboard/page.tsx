@@ -22,8 +22,10 @@ export default function Onboard() {
 
   const [phase, setPhase] = useState<Phase>("connect");
   const [imported, setImported] = useState<Imported | null>(null);
+  // Ambit is invite-only: the code is collected up front in the Connect step and
+  // spent when the persona is built. A rejected code sends the user back here.
+  const [invite, setInvite] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [waitlistPos] = useState(() => 1240 + Math.floor(Math.random() * 380));
 
   const name = user?.fullName ?? "there";
 
@@ -33,7 +35,18 @@ export default function Onboard() {
       <div className="flex-1 grid place-items-center px-5 py-10">
         <div className="w-full max-w-xl">
           {phase === "connect" && (
-            <Connect name={name} onConnected={() => setPhase("analyzing")} />
+            <Connect
+              name={name}
+              invite={invite}
+              onInviteChange={(v) => {
+                setInvite(v);
+                setError(null);
+              }}
+              onConnected={() => {
+                setError(null);
+                setPhase("analyzing");
+              }}
+            />
           )}
           {phase === "analyzing" && (
             <Analyzing
@@ -49,24 +62,29 @@ export default function Onboard() {
               imported={imported ?? SIMULATED_LINKEDIN}
               onComplete={async (collected) => {
                 setPhase("building");
-                const ok = await buildPersona({
+                const result = await buildPersona({
                   name: user?.fullName ?? "New member",
                   imported: imported ?? SIMULATED_LINKEDIN,
                   answers: collected,
+                  inviteCode: invite,
                 });
-                if (ok) setPhase("waitlist");
-                else {
-                  setError("Something went wrong building your profile. Try again.");
+                if (result.ok) {
+                  setPhase("enter");
+                } else if (result.status === 403) {
+                  // Bad invite code: send them back to where the code is entered.
+                  setError(result.error ?? "That invite code is invalid or already used.");
+                  setPhase("connect");
+                } else {
+                  setError(result.error ?? "Something went wrong building your profile. Try again.");
                   setPhase("goals");
                 }
               }}
             />
           )}
           {phase === "building" && <Building />}
-          {phase === "waitlist" && (
-            <Waitlist
+          {phase === "enter" && (
+            <Enter
               name={name}
-              position={waitlistPos}
               onEnter={() => {
                 router.push("/home");
                 router.refresh();
@@ -88,31 +106,42 @@ export default function Onboard() {
   );
 }
 
-// Build the persona from the imported LinkedIn data + the goals interview.
+// Build the persona from the imported LinkedIn data + the goals interview. The
+// invite code rides along: new members must spend a valid one (the API 403s
+// otherwise), existing members may re-run onboarding freely.
 async function buildPersona({
   name,
   imported,
   answers,
+  inviteCode,
 }: {
   name: string;
   imported: Imported;
   answers: Record<string, string>;
-}): Promise<boolean> {
+  inviteCode: string;
+}): Promise<{ ok: boolean; status?: number; error?: string }> {
   const needs = [answers.needs, answers.meet].filter(Boolean).join("\n");
   const contribute = [imported.contribute, answers.offer].filter(Boolean).join("\n");
-  const res = await fetch("/api/onboard/persona", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      name,
-      headline: imported.headline,
-      skills: imported.skills,
-      industries: imported.industries,
-      contribute,
-      needs,
-    }),
-  });
-  return res.ok;
+  try {
+    const res = await fetch("/api/onboard/persona", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name,
+        headline: imported.headline,
+        skills: imported.skills,
+        industries: imported.industries,
+        contribute,
+        needs,
+        inviteCode: inviteCode.trim(),
+      }),
+    });
+    if (res.ok) return { ok: true };
+    const d = await res.json().catch(() => ({}));
+    return { ok: false, status: res.status, error: d.error };
+  } catch {
+    return { ok: false, error: "Couldn't reach the network. Check your connection and try again." };
+  }
 }
 
 // --- Progress rail across the top ---
@@ -121,11 +150,11 @@ const RAIL: { phase: Phase; label: string }[] = [
   { phase: "connect", label: "Connect" },
   { phase: "analyzing", label: "Analyze" },
   { phase: "goals", label: "Goals" },
-  { phase: "waitlist", label: "Waitlist" },
+  { phase: "enter", label: "Enter" },
 ];
 
 function StepRail({ phase }: { phase: Phase }) {
-  const order: Phase[] = ["connect", "analyzing", "goals", "building", "waitlist"];
+  const order: Phase[] = ["connect", "analyzing", "goals", "building", "enter"];
   const current = order.indexOf(phase);
   return (
     <div className="w-full border-b border-border">
@@ -165,9 +194,19 @@ function StepRail({ phase }: { phase: Phase }) {
   );
 }
 
-// --- Step 1: connect LinkedIn (simulated) ---
+// --- Step 1: invite code + connect LinkedIn (simulated) ---
 
-function Connect({ name, onConnected }: { name: string; onConnected: () => void }) {
+function Connect({
+  name,
+  invite,
+  onInviteChange,
+  onConnected,
+}: {
+  name: string;
+  invite: string;
+  onInviteChange: (v: string) => void;
+  onConnected: () => void;
+}) {
   const [connecting, setConnecting] = useState(false);
   return (
     <Card className="p-8 gap-0 text-center">
@@ -181,13 +220,37 @@ function Connect({ name, onConnected }: { name: string; onConnected: () => void 
         Ambit is your network on autopilot. Connect LinkedIn and your agent reads your experience,
         then goes to work finding the people who can help you.
       </p>
+
+      <div className="mt-6 text-left">
+        <label
+          htmlFor="invite"
+          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+        >
+          Invite code
+        </label>
+        <input
+          id="invite"
+          value={invite}
+          onChange={(e) => onInviteChange(e.target.value)}
+          placeholder="ambit-xxxxxx"
+          className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-border bg-background outline-none focus:border-primary text-sm"
+        />
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Ambit is invite-only while the network grows. No code?{" "}
+          <a href="/#waitlist" className="text-primary font-medium">
+            request access
+          </a>
+          .
+        </p>
+      </div>
+
       <button
         onClick={() => {
           setConnecting(true);
           setTimeout(onConnected, 1100);
         }}
-        disabled={connecting}
-        className="mt-7 inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#0a66c2] text-white font-semibold px-5 py-3 hover:brightness-110 disabled:opacity-70 transition"
+        disabled={connecting || !invite.trim()}
+        className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#0a66c2] text-white font-semibold px-5 py-3 hover:brightness-110 disabled:opacity-70 transition"
       >
         {connecting ? (
           <>
@@ -473,43 +536,28 @@ function Building() {
   );
 }
 
-// --- Step 4: waitlist confirmation ---
+// --- Step 4: you're in ---
 
-function Waitlist({
-  name,
-  position,
-  onEnter,
-}: {
-  name: string;
-  position: number;
-  onEnter: () => void;
-}) {
+function Enter({ name, onEnter }: { name: string; onEnter: () => void }) {
   return (
     <Card className="p-8 gap-0 text-center">
       <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-[var(--good)]/12 text-[var(--good)] mb-5">
         <Check className="w-7 h-7" />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">
-        You&rsquo;re on the list{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
+        You&rsquo;re in{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
       </h1>
       <p className="text-muted-foreground mt-3 leading-relaxed max-w-sm mx-auto">
-        Your agent is built and ready. We&rsquo;re onboarding new members in small batches so every
-        intro lands well — we&rsquo;ll email you the moment your spot opens.
+        Your agent is built and already at work — meeting people, spotting matches, and lining up
+        the introductions worth making. The more it knows, the better they get.
       </p>
 
-      <div className="mt-6 rounded-xl bg-muted px-5 py-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Your position</p>
-        <p className="text-3xl font-semibold tracking-tight mt-1">
-          #{position.toLocaleString()}
-        </p>
-      </div>
-
-      <Button size="lg" className="mt-6 w-full h-11 text-base" onClick={onEnter}>
-        Take an early look inside
+      <Button size="lg" className="mt-7 w-full h-11 text-base" onClick={onEnter}>
+        Enter Ambit
         <ArrowRight className="w-4 h-4" />
       </Button>
       <p className="text-xs text-muted-foreground mt-3">
-        Preview access — jump the line by inviting people who&rsquo;d be great in your network.
+        Invite people who&rsquo;d be great in your network — every intro gets stronger.
       </p>
     </Card>
   );
