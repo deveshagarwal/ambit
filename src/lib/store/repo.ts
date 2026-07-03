@@ -59,6 +59,23 @@ export async function memberCount(): Promise<number> {
   return r?.c ?? 0;
 }
 
+// A cheap fingerprint of the graph's matchable state: member count, active-edge
+// count, and the newest add/invalidate timestamp. Any profile change (new member,
+// added fact, invalidated fact, re-onboard) changes it, so caches keyed on this
+// rebuild when they should — unlike keying on member count alone, which misses
+// every persona edit.
+export async function graphVersion(): Promise<string> {
+  const r = await queryOne<{ m: number; e: number; t: string }>(
+    `SELECT
+       (SELECT COUNT(*) FROM members)::int AS m,
+       (SELECT COUNT(*) FROM edges WHERE invalidated_at IS NULL)::int AS e,
+       COALESCE(
+         (SELECT EXTRACT(EPOCH FROM GREATEST(MAX(recorded_at), MAX(invalidated_at)))::bigint
+          FROM edges), 0) AS t`,
+  );
+  return `${r?.m ?? 0}:${r?.e ?? 0}:${r?.t ?? 0}`;
+}
+
 // ---- Facts (reified, confidence-scored, bitemporal edges) ----
 // Exposed in the legacy Attribute shape (type = predicate, value = object_value)
 // so callers do not need to know about the edge model.
@@ -337,6 +354,17 @@ export async function logOutcome(input: {
       input.score ?? null,
     ],
   );
+}
+
+// Targets who already declined this asker's intro request. Cheap read of the
+// outcomes log so matching stops re-surfacing people who said no.
+export async function declinedTargetIds(askerId: string): Promise<string[]> {
+  const rows = await query<{ target_id: string }>(
+    `SELECT DISTINCT target_id FROM outcomes
+     WHERE asker_id = $1 AND action = 'declined' AND target_id IS NOT NULL`,
+    [askerId],
+  );
+  return rows.map((r) => r.target_id);
 }
 
 export async function recentActivity(limit = 12): Promise<

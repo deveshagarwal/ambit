@@ -1,5 +1,6 @@
 import { query } from "./store/client";
-import { addAttributes, createConnection, createMember } from "./store/repo";
+import { addAttributes, createAsk, createConnection, createMember } from "./store/repo";
+import { keywordTags } from "./text";
 import type { AttributeType } from "./types";
 
 type Bundle = Partial<Record<AttributeType, string[]>>;
@@ -221,6 +222,14 @@ export async function seedCommunity(force = false): Promise<number> {
         }
       });
       await addAttributes(m.id, attrs);
+
+      // Give each member one open ask from their archetype's needs, so a brand-new
+      // real member's "you can help" feed is alive on day one instead of empty.
+      const askText = pick(arch.bundle.need, 1, inst)[0];
+      if (askText) {
+        await createAsk(m.id, `Looking for ${askText}`, keywordTags(askText));
+      }
+
       created.push(m.id);
       idx++;
     }
