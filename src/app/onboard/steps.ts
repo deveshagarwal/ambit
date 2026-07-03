@@ -10,8 +10,10 @@ export interface Imported {
   headline: string;
   skills: string;
   industries: string;
-  profile: string;
+  profile: string; // raw about + résumé text, stored + mined by the LLM
   contribute: string;
+  work: { title: string; company: string; years: string }[];
+  education: { school: string; degree: string }[];
 }
 
 // The chat-style goals interview. Each question the agent asks maps its answer

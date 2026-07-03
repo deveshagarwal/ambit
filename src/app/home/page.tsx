@@ -18,12 +18,23 @@ import { Button } from "@/components/ui/button";
 const TYPE_LABEL: Record<AttributeType, string> = {
   skill: "Skills",
   experience: "Experience",
+  company: "Companies",
+  school: "Education",
   industry: "Industries",
   interest: "Interests",
   offer: "Can help with",
   need: "Looking for",
 };
-const TYPE_ORDER: AttributeType[] = ["offer", "skill", "experience", "industry", "interest", "need"];
+const TYPE_ORDER: AttributeType[] = [
+  "offer",
+  "skill",
+  "experience",
+  "company",
+  "school",
+  "industry",
+  "interest",
+  "need",
+];
 
 export default async function Home() {
   await ensureSeeded();

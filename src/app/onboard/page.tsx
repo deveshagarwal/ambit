@@ -125,9 +125,11 @@ async function buildPersona({
         headline: imported.headline,
         skills: imported.skills,
         industries: imported.industries,
-        // The pasted LinkedIn/bio text — buildPersona extracts real skills,
-        // experience, and industries from it via the LLM.
+        // The about + raw résumé text — stored on the member and mined by the LLM.
         linkedin: imported.profile,
+        // Structured work/education — stored as canonical company/school/experience.
+        work: imported.work,
+        education: imported.education,
         contribute,
         needs,
         inviteCode: inviteCode.trim(),
@@ -341,20 +343,10 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
   }
 
   function submit() {
-    // Everything the member confirmed, serialized into the free-text `linkedin`
-    // field that buildPersona mines for attributes (alongside the raw PDF text).
-    const workLines = work
-      .filter((w) => w.title || w.company)
-      .map((w) => `${w.title}${w.company ? ` at ${w.company}` : ""}${w.years ? ` (${w.years})` : ""}`);
-    const eduLines = education
-      .filter((e) => e.school)
-      .map((e) => `${e.degree ? `${e.degree}, ` : ""}${e.school}`);
-    const composed = [
-      about.trim() && `About: ${about.trim()}`,
-      workLines.length && `Experience:\n${workLines.join("\n")}`,
-      eduLines.length && `Education:\n${eduLines.join("\n")}`,
-      rawText,
-    ]
+    // Work/education go through as structured rows (stored as canonical
+    // company/school/experience edges). The free-text about + raw résumé is the
+    // `profile` blob: stored on the member and mined by the LLM for the rest.
+    const composed = [about.trim() && `About: ${about.trim()}`, rawText]
       .filter(Boolean)
       .join("\n\n");
 
@@ -364,6 +356,8 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
       industries: industries.join(", "),
       profile: composed,
       contribute: "",
+      work: work.filter((w) => w.title.trim() || w.company.trim()),
+      education: education.filter((e) => e.school.trim()),
     });
   }
 

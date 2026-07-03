@@ -21,10 +21,11 @@ export async function createMember(input: {
   isSynthetic?: boolean;
   karma?: number;
   clerkUserId?: string | null;
+  profileText?: string | null;
 }): Promise<Member> {
   const row = await queryOne<Member>(
-    `INSERT INTO members (id, name, headline, bio, karma, is_synthetic, clerk_user_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
+    `INSERT INTO members (id, name, headline, bio, karma, is_synthetic, clerk_user_id, profile_text)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING ${MEMBER_COLS}`,
     [
       nanoid(10),
@@ -34,9 +35,15 @@ export async function createMember(input: {
       input.karma ?? 0,
       input.isSynthetic ?? false,
       input.clerkUserId ?? null,
+      input.profileText ?? null,
     ],
   );
   return row!;
+}
+
+// Store/refresh the raw uploaded résumé/LinkedIn text for a member.
+export async function setProfileText(memberId: string, text: string): Promise<void> {
+  await query(`UPDATE members SET profile_text = $2 WHERE id = $1`, [memberId, text]);
 }
 
 export async function getMember(id: string): Promise<Member | undefined> {

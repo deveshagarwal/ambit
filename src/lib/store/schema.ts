@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS members (
 ALTER TABLE members ADD COLUMN IF NOT EXISTS clerk_user_id text;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_members_clerk
   ON members(clerk_user_id) WHERE clerk_user_id IS NOT NULL;
+-- The raw uploaded résumé / LinkedIn text, kept on file so a member's profile
+-- can be re-extracted later without re-uploading.
+ALTER TABLE members ADD COLUMN IF NOT EXISTS profile_text text;
 
 -- Reified, bitemporal, confidence-scored facts about a member.
 -- predicate: skill | experience | industry | interest | offer | need

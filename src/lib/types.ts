@@ -3,7 +3,9 @@ import { z } from "zod";
 // The kinds of knowledge that hang off a person node in the graph.
 export const ATTRIBUTE_TYPES = [
   "skill", // something they can do
-  "experience", // something they've done / lived through
+  "experience", // a role / thing they've done
+  "company", // an employer they've worked at (canonical, for exact-match)
+  "school", // a school they attended (canonical, for exact-match)
   "industry", // domain they operate in
   "interest", // what they care about
   "offer", // how they can help others

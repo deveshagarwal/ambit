@@ -13,11 +13,22 @@ const LABEL: Record<AttributeType, string> = {
   offer: "Can help with",
   skill: "Skills",
   experience: "Experience",
+  company: "Companies",
+  school: "Education",
   industry: "Industries",
   interest: "Interests",
   need: "Looking for",
 };
-const ORDER: AttributeType[] = ["offer", "need", "skill", "experience", "industry", "interest"];
+const ORDER: AttributeType[] = [
+  "offer",
+  "need",
+  "skill",
+  "experience",
+  "company",
+  "school",
+  "industry",
+  "interest",
+];
 
 const field =
   "w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] outline-none focus:border-[var(--primary)] text-sm";

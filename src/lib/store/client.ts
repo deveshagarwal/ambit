@@ -18,10 +18,21 @@ const CONN =
   process.env.POSTGRES_PRISMA_URL ||
   "";
 
+// Which storage backend is actually live. "pglite-ephemeral" on a serverless
+// host means data is per-instance and lost on redeploy — a misconfiguration.
+export type DbBackend = "postgres" | "pglite-local" | "pglite-ephemeral";
+let activeBackend: DbBackend = "postgres";
+export function dbBackend(): DbBackend {
+  return activeBackend;
+}
+// True on Vercel (and most serverless hosts) where the filesystem is ephemeral.
+const ON_SERVERLESS = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 let backendPromise: Promise<Backend> | null = null;
 
 async function makeBackend(): Promise<Backend> {
   if (CONN) {
+    activeBackend = "postgres";
     const { Pool } = await import("pg");
     const pool = new Pool({ connectionString: CONN, max: 5 });
     const backend: Backend = {
@@ -31,19 +42,30 @@ async function makeBackend(): Promise<Backend> {
     return backend;
   }
 
+  // No connection string. On a serverless host this is a real problem: the app
+  // will "work" but store to a per-instance temp dir that vanishes on redeploy.
+  // Log loudly so it's visible in the platform logs (and reported by /api/health).
+  if (ON_SERVERLESS) {
+    console.error(
+      "[db] FATAL-ish: no DATABASE_URL/POSTGRES_URL set on a serverless host. " +
+        "Falling back to EPHEMERAL per-instance PGlite — data will NOT persist across " +
+        "deploys or instances. Attach a Postgres store and set POSTGRES_URL.",
+    );
+  }
+
   const { PGlite } = await import("@electric-sql/pglite");
   const fs = await import("node:fs");
   const path = await import("node:path");
   const os = await import("node:os");
   // Prefer ./data locally (persists). On a read-only serverless filesystem
-  // (e.g. Vercel without a Postgres store) fall back to the writable temp dir so
-  // the app still renders. Note: temp storage is ephemeral and per-instance, so
-  // production should set DATABASE_URL / POSTGRES_URL to a real Postgres.
+  // (e.g. Vercel without a Postgres store) fall back to the writable temp dir.
   let dir = path.join(process.cwd(), "data", "weave-pg");
+  activeBackend = ON_SERVERLESS ? "pglite-ephemeral" : "pglite-local";
   try {
     fs.mkdirSync(dir, { recursive: true });
   } catch {
     dir = path.join(os.tmpdir(), "weave-pg");
+    activeBackend = "pglite-ephemeral";
     fs.mkdirSync(dir, { recursive: true });
   }
   const db = new PGlite(dir);

@@ -13,6 +13,8 @@ const TYPE_WEIGHT: Record<AttributeType, number> = {
   skill: 1.3,
   industry: 1.2,
   experience: 1.1,
+  company: 1.0,
+  school: 0.8,
   interest: 0.9,
 };
 const HEADLINE_WEIGHT = 0.6;
