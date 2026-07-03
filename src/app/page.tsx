@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { ensureSeeded } from "@/lib/bootstrap";
 import { getMember } from "@/lib/store/repo";
 import { getCurrentMemberId } from "@/lib/session";
@@ -14,20 +12,14 @@ import { Button } from "@/components/ui/button";
 
 export default async function Landing() {
   await ensureSeeded();
-  const { userId } = await auth();
 
-  // Signed in: skip the marketing page entirely and drop them into the real
-  // interface. Members go to the app; a signed-in account without a member yet
-  // still needs to build its agent, so it goes to onboarding.
-  if (userId) {
-    const id = await getCurrentMemberId();
-    const hasMember = !!(id && (await getMember(id)));
-    redirect(hasMember ? "/home" : "/onboard");
-  }
+  // Everyone sees the hero. A member (onboarded) gets a CTA straight into the
+  // app; visitors get the invite-only waitlist CTA.
+  const id = await getCurrentMemberId();
+  const signedIn = !!(id && (await getMember(id)));
+  const primaryHref = signedIn ? "/ask" : "#waitlist";
+  const primaryLabel = signedIn ? landing.hero.ctaSignedIn : landing.hero.ctaJoin;
 
-  // Signed out below: the landing markets to visitors. Ambit is invite-only, so
-  // the primary CTA lands on the waitlist; an invite code (via the small sign-up
-  // link) is the only way straight into onboarding.
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* HERO: editorial, light. Two columns — the pitch on the left, a fanned
@@ -38,7 +30,7 @@ export default async function Landing() {
           <div className="flex items-center gap-2 font-serif font-semibold text-xl tracking-tight">
             <Logo size={22} className="text-foreground" /> Ambit
           </div>
-          <Button render={<Link href="#waitlist" />}>{landing.hero.ctaJoin}</Button>
+          <Button render={<Link href={primaryHref} />}>{primaryLabel}</Button>
         </div>
 
         <div className="max-w-6xl mx-auto px-5 pt-16 sm:pt-20 flex flex-col items-center gap-14 xl:flex-row xl:items-center xl:gap-10">
@@ -56,20 +48,22 @@ export default async function Landing() {
               {landing.hero.sub}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center xl:justify-start gap-3">
-              <Button render={<Link href="#waitlist" />} size="lg" className="h-11 px-6 text-base">
-                {landing.hero.ctaJoin}
+              <Button render={<Link href={primaryHref} />} size="lg" className="h-11 px-6 text-base">
+                {primaryLabel}
               </Button>
               {/* "See how it works" secondary CTA hidden for now */}
             </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              {landing.hero.invitePrompt}{" "}
-              <JoinCTA
-                signedIn={false}
-                href="/onboard"
-                label={landing.hero.inviteLink}
-                className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
-              />
-            </p>
+            {!signedIn && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                {landing.hero.invitePrompt}{" "}
+                <JoinCTA
+                  signedIn={false}
+                  href="/onboard"
+                  label={landing.hero.inviteLink}
+                  className="text-foreground font-medium underline underline-offset-4 hover:no-underline"
+                />
+              </p>
+            )}
           </div>
 
           {/* Right: the intros, with a drifting strip of scenes above them */}
@@ -82,7 +76,8 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* FINAL CTA: waitlist capture */}
+      {/* FINAL CTA: waitlist capture (visitors only) */}
+      {!signedIn && (
       <section id="waitlist" className="max-w-6xl mx-auto px-5 pb-24 scroll-mt-20">
         <div className="rounded-2xl border border-border bg-card px-8 py-14 text-center">
           <h2 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight">
@@ -103,6 +98,7 @@ export default async function Landing() {
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 }
