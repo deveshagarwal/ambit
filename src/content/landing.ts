@@ -11,7 +11,7 @@ export const landing = {
     // tiny line above the headline
     kicker: "The anti-LinkedIn network",
     // headline in three parts: normal, highlighted (italic serif), normal
-    headlineLead: "Meet the person who changes ",
+    headlineLead: "The right introduction changes ",
     headlineAccent: "everything",
     headlineTail: ".",
     sub: "Looking for a cofounder? A mentor? An engineer? Let your network do the work. Ambit learns who you are and what you need - then introduces you. No feed, no titles, no performing.",
@@ -106,7 +106,7 @@ export const landing = {
   },
 
   cta: {
-    heading: "Find the people who make your life bigger.",
+    heading: "Network, without the networking.",
     sub: "Ambit is invite-only while the network grows. Leave your email and we'll send an invite as spots open.",
   },
 
