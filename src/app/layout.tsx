@@ -48,7 +48,16 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const { userId } = await auth();
+  // clerkMiddleware() doesn't run on paths the proxy matcher excludes (static-file
+  // extensions like /sw.js, /*.css). Those still fall through to a not-found render
+  // that hits this layout, where auth() would throw "can't detect clerkMiddleware".
+  // Degrade to signed-out so the 404 renders cleanly instead of 500-ing.
+  let userId: string | null = null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    userId = null;
+  }
   const id = await getCurrentMemberId();
   const me = id ? await getMember(id) : undefined;
   return (
