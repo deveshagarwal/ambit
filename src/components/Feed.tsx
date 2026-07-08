@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@astryxdesign/core/Card";
 
 // The always-alive feed. A vertical pulse of reciprocity moments that keeps
 // refreshing on its own so the network feels like a living thing you can watch
@@ -20,11 +20,11 @@ const KIND_META: Record<
   FeedItem["kind"],
   { icon: string; color: string; label: string }
 > = {
-  you_can_help: { icon: "🤝", color: "var(--primary)", label: "You can help" },
-  could_help_you: { icon: "✨", color: "var(--good)", label: "Help for you" },
-  connection: { icon: "🪢", color: "var(--muted-foreground)", label: "Connection" },
-  cred: { icon: "★", color: "var(--karma)", label: "Cred" },
-  joined: { icon: "👋", color: "var(--accent-2)", label: "Joined" },
+  you_can_help: { icon: "🤝", color: "var(--color-accent)", label: "You can help" },
+  could_help_you: { icon: "✨", color: "var(--color-good)", label: "Help for you" },
+  connection: { icon: "🪢", color: "var(--color-text-secondary)", label: "Connection" },
+  cred: { icon: "★", color: "var(--color-karma)", label: "Cred" },
+  joined: { icon: "👋", color: "var(--color-accent-2)", label: "Joined" },
 };
 
 const POLL_MS = 20000;
@@ -85,12 +85,12 @@ export default function Feed() {
   }, [load]);
 
   return (
-    <Card className="gap-0 p-4">
+    <Card padding={4} className="gap-0">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
+        <h2 className="text-sm font-semibold tracking-wide text-primary">
           The pulse
         </h2>
-        <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <span className="flex items-center gap-1.5 text-xs text-secondary">
           <span className="wv-live-dot" aria-hidden />
           Live
         </span>
@@ -102,16 +102,16 @@ export default function Feed() {
             <div
               key={i}
               className="h-12 rounded-xl"
-              style={{ background: "var(--accent-soft)", opacity: 0.5 }}
+              style={{ background: "var(--color-background-muted)", opacity: 0.5 }}
             />
           ))}
         </div>
       ) : error && items.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-sm py-6 text-center" style={{ color: "var(--color-text-secondary)" }}>
           {error}
         </p>
       ) : items.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-sm py-6 text-center" style={{ color: "var(--color-text-secondary)" }}>
           Quiet for now. The network is listening.
         </p>
       ) : (
@@ -123,14 +123,14 @@ export default function Feed() {
               <li
                 key={item.id}
                 className="flex items-start gap-3 py-3"
-                style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}
+                style={{ borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}
               >
                 <span
                   className="flex items-center justify-center shrink-0 rounded-full text-sm"
                   style={{
                     width: "1.9rem",
                     height: "1.9rem",
-                    background: highlight ? "var(--accent-soft)" : "transparent",
+                    background: highlight ? "var(--color-background-muted)" : "transparent",
                     border: `1px solid ${meta.color}`,
                     color: meta.color,
                   }}
@@ -141,15 +141,12 @@ export default function Feed() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
-                    <p
-                      className="text-sm font-medium leading-snug"
-                      style={{ color: "var(--foreground)" }}
-                    >
+                    <p className="text-sm font-medium leading-snug text-primary">
                       {item.text}
                     </p>
                     <span
                       className="text-[0.68rem] shrink-0 ml-auto"
-                      style={{ color: "var(--muted-foreground)" }}
+                      style={{ color: "var(--color-text-secondary)" }}
                     >
                       {relativeTime(item.ts)}
                     </span>
@@ -157,7 +154,7 @@ export default function Feed() {
                   {item.sub ? (
                     <p
                       className="text-xs mt-0.5 truncate"
-                      style={{ color: "var(--muted-foreground)" }}
+                      style={{ color: "var(--color-text-secondary)" }}
                       title={item.sub}
                     >
                       {item.sub}
@@ -167,7 +164,7 @@ export default function Feed() {
                     <a
                       href={item.href}
                       className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold"
-                      style={{ color: "var(--primary)" }}
+                      style={{ color: "var(--color-accent)" }}
                     >
                       Help out →
                     </a>
@@ -189,7 +186,7 @@ export default function Feed() {
           width: 0.5rem;
           height: 0.5rem;
           border-radius: 9999px;
-          background: var(--good);
+          background: var(--color-good);
           animation: wv-live 1.8s ease-in-out infinite;
         }
         @media (prefers-reduced-motion: reduce) {

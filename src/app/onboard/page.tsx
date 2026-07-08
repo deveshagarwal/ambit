@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Sparkles, Check, ArrowRight, Loader2, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { GOAL_QUESTIONS, type Imported, type Phase } from "./steps";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { EMPTY_PREFILL, GOAL_QUESTIONS, type Imported, type Phase, type Prefill } from "./steps";
 import { COMPANY_OPTIONS, SCHOOL_OPTIONS } from "./lists";
 
 type ChatMsg = { role: "agent" | "user"; content: string };
@@ -16,6 +17,8 @@ export default function Onboard() {
   const { user } = useUser();
 
   const [phase, setPhase] = useState<Phase>("invite");
+  // Set by the upload step, consumed by the review step to prefill its editable form.
+  const [prefill, setPrefill] = useState<Prefill>(EMPTY_PREFILL);
   const [imported, setImported] = useState<Imported | null>(null);
   // Ambit is invite-only: the code is redeemed up front (the "invite" gate) before
   // onboarding, then re-passed to the persona build (redeemInvite is idempotent).
@@ -35,13 +38,27 @@ export default function Onboard() {
               onValid={(code) => {
                 setInvite(code);
                 setError(null);
-                setPhase("connect");
+                setPhase("upload");
               }}
             />
           )}
-          {phase === "connect" && (
-            <Connect
+          {phase === "upload" && (
+            <Upload
               name={name}
+              onDone={(next) => {
+                setPrefill(next);
+                setError(null);
+                setPhase("review");
+              }}
+            />
+          )}
+          {phase === "review" && (
+            <Review
+              prefill={prefill}
+              onBack={() => {
+                setError(null);
+                setPhase("upload");
+              }}
               onSubmit={(profile) => {
                 setImported(profile);
                 setError(null);
@@ -86,12 +103,12 @@ export default function Onboard() {
             />
           )}
           {error && phase !== "building" && (
-            <p className="text-sm text-[var(--accent-2)] mt-4 text-center">{error}</p>
+            <p className="text-sm text-[var(--color-accent-2)] mt-4 text-center">{error}</p>
           )}
         </div>
       </div>
       <footer className="border-t border-border">
-        <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-center gap-1.5 text-xs text-secondary">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Ambit — your network on autopilot</span>
         </div>
@@ -146,43 +163,53 @@ async function buildPersona({
 // --- Progress rail across the top ---
 
 const RAIL: { phase: Phase; label: string }[] = [
-  { phase: "connect", label: "You" },
+  { phase: "upload", label: "You" },
   { phase: "goals", label: "Goals" },
   { phase: "enter", label: "Done" },
 ];
 
+// The upload + review steps both live under the "You" rail marker, and the
+// building spinner under "Goals". Collapse the real phase onto its rail phase so
+// progress/active state reads cleanly across the three visible markers.
+function railPhaseOf(phase: Phase): Phase {
+  if (phase === "review") return "upload";
+  if (phase === "building") return "goals";
+  return phase;
+}
+
 function StepRail({ phase }: { phase: Phase }) {
-  const order: Phase[] = ["connect", "goals", "building", "enter"];
-  const current = order.indexOf(phase);
+  const order: Phase[] = ["upload", "goals", "enter"];
+  const rail = railPhaseOf(phase);
+  const current = order.indexOf(rail);
   return (
     <div className="w-full border-b border-border">
       <div className="max-w-xl mx-auto px-5 py-4 flex items-center gap-2">
         {RAIL.map((s, i) => {
           const stepIndex = order.indexOf(s.phase);
           const done = current > stepIndex;
-          const active = phase === s.phase || (phase === "building" && s.phase === "goals");
+          const active = rail === s.phase;
           return (
             <div key={s.phase} className="flex items-center gap-2 flex-1 last:flex-none">
               <div className="flex items-center gap-2">
                 <span
                   className={`grid place-items-center w-6 h-6 rounded-full text-xs font-semibold transition-colors ${
                     done
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-accent-bg text-on-accent"
                       : active
-                        ? "bg-primary/15 text-primary ring-1 ring-primary/30"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-accent-bg/15 text-accent ring-1 ring-accent/30"
+                        : "bg-muted text-secondary"
                   }`}
                 >
                   {done ? <Check className="w-3.5 h-3.5" /> : i + 1}
                 </span>
                 <span
-                  className={`text-xs font-medium ${active || done ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-xs font-medium ${active || done ? "text-primary" : "text-secondary"}`}
                 >
                   {s.label}
                 </span>
               </div>
               {i < RAIL.length - 1 && (
-                <div className={`h-px flex-1 ${done ? "bg-primary/40" : "bg-border"}`} />
+                <div className={`h-px flex-1 ${done ? "bg-accent-bg/40" : "bg-border"}`} />
               )}
             </div>
           );
@@ -224,14 +251,14 @@ function InviteGate({ name, onValid }: { name: string; onValid: (code: string) =
   }
 
   return (
-    <Card className="p-8 gap-0 text-center">
-      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-primary/10 text-primary mb-5">
+    <Card padding={8} className="gap-0 text-center">
+      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
         <Sparkles className="w-7 h-7" />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">
         Welcome{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
       </h1>
-      <p className="text-muted-foreground mt-3 leading-relaxed max-w-sm mx-auto">
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
         Ambit is invite-only while the network grows. Enter your code to get started.
       </p>
 
@@ -249,28 +276,22 @@ function InviteGate({ name, onValid }: { name: string; onValid: (code: string) =
         }}
         autoFocus
         placeholder="ambit-xxxxxx"
-        className="mt-6 w-full px-3.5 py-2.5 rounded-xl border border-border bg-background outline-none focus:border-primary text-center text-sm"
+        className="mt-6 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-center text-sm"
       />
-      {error && <p className="text-sm text-[var(--accent-2)] mt-2">{error}</p>}
+      {error && <p className="text-sm text-[var(--color-accent-2)] mt-2">{error}</p>}
 
       <Button
+        label={checking ? "Checking…" : "Continue"}
+        variant="primary"
         size="lg"
         className="mt-5 w-full h-11 text-base"
-        disabled={!code.trim() || checking}
+        isDisabled={!code.trim() || checking}
+        isLoading={checking}
         onClick={submit}
-      >
-        {checking ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" /> Checking…
-          </>
-        ) : (
-          <>
-            Continue
-            <ArrowRight className="w-4 h-4" />
-          </>
-        )}
-      </Button>
-      <p className="text-xs text-muted-foreground mt-4">
+        icon={checking ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
+        endContent={checking ? undefined : <ArrowRight className="w-4 h-4" />}
+      />
+      <p className="text-xs text-secondary mt-4">
         No code?{" "}
         <a href="/#waitlist" className="text-primary font-medium">
           Join the waitlist
@@ -281,18 +302,15 @@ function InviteGate({ name, onValid }: { name: string; onValid: (code: string) =
   );
 }
 
-// --- Step 1: upload your LinkedIn PDF / resume, confirm your profile ---
+// --- Step 1: upload your LinkedIn PDF / resume ---
+//
+// A single, focused job: get the document. On a successful read we auto-advance to
+// the review step, where Ambit's AI-structured fields are waiting pre-filled — the
+// upload does the work, the member just confirms.
 
-function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Imported) => void }) {
-  const [headline, setHeadline] = useState("");
-  const [rawText, setRawText] = useState(""); // raw extracted PDF text, mined later by buildPersona
-  const [work, setWork] = useState<{ title: string; company: string; years: string }[]>([]);
-  const [education, setEducation] = useState<{ school: string; degree: string }[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [industries, setIndustries] = useState<string[]>([]);
-  const [about, setAbout] = useState("");
+function Upload({ name, onDone }: { name: string; onDone: (prefill: Prefill) => void }) {
   const [upload, setUpload] = useState<
-    { state: "idle" } | { state: "reading"; name: string } | { state: "done"; name: string } | { state: "error"; message: string }
+    { state: "idle" } | { state: "reading"; name: string } | { state: "error"; message: string }
   >({ state: "idle" });
   const [showHelp, setShowHelp] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -309,38 +327,169 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
         setUpload({ state: "error", message: data.error ?? "Couldn't read that file. Try again." });
         return;
       }
-      setRawText(data.text ?? "");
-      // Prefill from the document, but never clobber something the user typed.
+      // Hand the AI-structured fields + raw text to the review step, which prefills
+      // its editable form from them.
       const f = data.fields ?? {};
-      if (f.headline) setHeadline((h) => h || f.headline);
-      if (Array.isArray(f.work) && f.work.length) {
-        setWork((w) =>
-          w.length
-            ? w
-            : f.work.map((x: { title?: string; company?: string; years?: string }) => ({
-                title: x.title ?? "",
-                company: x.company ?? "",
-                years: x.years ?? "",
-              })),
-        );
-      }
-      if (Array.isArray(f.education) && f.education.length) {
-        setEducation((e) =>
-          e.length
-            ? e
-            : f.education.map((x: { school?: string; degree?: string }) => ({
-                school: x.school ?? "",
-                degree: x.degree ?? "",
-              })),
-        );
-      }
-      if (Array.isArray(f.skills)) setSkills((s) => dedupeMerge(s, f.skills));
-      if (Array.isArray(f.industries)) setIndustries((i) => dedupeMerge(i, f.industries));
-      setUpload({ state: "done", name: file.name });
+      onDone({
+        rawText: data.text ?? "",
+        headline: typeof f.headline === "string" ? f.headline : "",
+        work: Array.isArray(f.work)
+          ? f.work.map((x: { title?: string; company?: string; years?: string }) => ({
+              title: x.title ?? "",
+              company: x.company ?? "",
+              years: x.years ?? "",
+            }))
+          : [],
+        education: Array.isArray(f.education)
+          ? f.education.map((x: { school?: string; degree?: string }) => ({
+              school: x.school ?? "",
+              degree: x.degree ?? "",
+            }))
+          : [],
+        skills: Array.isArray(f.skills) ? dedupeMerge([], f.skills) : [],
+        industries: Array.isArray(f.industries) ? dedupeMerge([], f.industries) : [],
+        fromUpload: true,
+        aiOk: data.aiOk !== false,
+        warning: typeof data.warning === "string" ? data.warning : undefined,
+      });
     } catch {
       setUpload({ state: "error", message: "Couldn't reach the network. Try again." });
     }
   }
+
+  const reading = upload.state === "reading";
+
+  return (
+    <Card padding={8} className="gap-0 text-center">
+      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
+        <Sparkles className="w-7 h-7" />
+      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Let&rsquo;s build your profile{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
+      </h1>
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
+        Upload your LinkedIn PDF or résumé and Ambit reads your real experience — then fills out the
+        next screen for you. You just review and tweak.
+      </p>
+
+      <div className="mt-6 text-left">
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-secondary">
+            Your LinkedIn PDF or résumé
+          </span>
+          <button
+            type="button"
+            aria-label="Where do I get my LinkedIn PDF?"
+            aria-expanded={showHelp}
+            onClick={() => setShowHelp((v) => !v)}
+            className="grid place-items-center w-4.5 h-4.5 rounded-full border border-border text-secondary hover:text-primary hover:border-foreground/40 text-[10px] font-semibold leading-none"
+          >
+            ?
+          </button>
+        </div>
+
+        {showHelp && (
+          <div className="mt-2 rounded-xl border border-border bg-muted/40 p-4 text-sm leading-relaxed">
+            <p className="font-medium mb-1.5">Where to get your LinkedIn PDF</p>
+            <ol className="list-decimal list-inside space-y-1 text-secondary">
+              <li>Open <span className="text-primary font-medium">linkedin.com</span> and go to your own profile</li>
+              <li>Click the <span className="text-primary font-medium">Resources</span> (or <span className="text-primary font-medium">More</span>) button under your name</li>
+              <li>Choose <span className="text-primary font-medium">Save to PDF</span> — it downloads your profile as a PDF</li>
+              <li>Drop that file here (a regular résumé works too)</li>
+            </ol>
+          </div>
+        )}
+
+        <div
+          role="button"
+          tabIndex={reading ? -1 : 0}
+          aria-disabled={reading}
+          onClick={() => !reading && fileInput.current?.click()}
+          onKeyDown={(e) => {
+            if (!reading && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              fileInput.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!reading) setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            if (reading) return;
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleFile(f);
+          }}
+          className={`mt-2 rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors ${
+            reading
+              ? "border-accent/40 bg-accent-bg/5 cursor-default"
+              : dragOver
+                ? "border-accent bg-accent-bg/5 cursor-pointer"
+                : "border-border hover:border-accent/30 cursor-pointer"
+          }`}
+        >
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+          {reading ? (
+            <span className="inline-flex flex-col items-center gap-2 text-sm text-secondary">
+              <Loader2 className="w-5 h-5 animate-spin text-accent" />
+              <span>Reading {upload.name} and filling out your profile…</span>
+            </span>
+          ) : (
+            <span className="text-sm text-secondary">
+              <span className="font-medium text-primary">Drop your PDF here</span> or click to
+              browse
+            </span>
+          )}
+        </div>
+        {upload.state === "error" && (
+          <p className="text-sm text-[var(--color-accent-2)] mt-2 text-center">{upload.message}</p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onDone(EMPTY_PREFILL)}
+        disabled={reading}
+        className="mt-5 text-xs text-secondary hover:text-primary disabled:opacity-50"
+      >
+        Prefer not to upload? Fill it in by hand →
+      </button>
+    </Card>
+  );
+}
+
+// --- Step 2: review the AI-prefilled profile, edit anything ---
+
+function Review({
+  prefill,
+  onBack,
+  onSubmit,
+}: {
+  prefill: Prefill;
+  onBack: () => void;
+  onSubmit: (profile: Imported) => void;
+}) {
+  const [headline, setHeadline] = useState(prefill.headline);
+  const [work, setWork] = useState(prefill.work);
+  const [education, setEducation] = useState(prefill.education);
+  const [skills, setSkills] = useState(prefill.skills);
+  const [industries, setIndustries] = useState(prefill.industries);
+  const [about, setAbout] = useState("");
+  // Raw extracted PDF text, carried through untouched and mined later by buildPersona.
+  const rawText = prefill.rawText;
 
   function submit() {
     // Work/education go through as structured rows (stored as canonical
@@ -361,110 +510,35 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
     });
   }
 
-  const canContinue = headline.trim().length > 0 && upload.state !== "reading";
+  const canContinue = headline.trim().length > 0;
   const field =
-    "mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-border bg-background outline-none focus:border-primary text-sm";
+    "mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-sm";
 
   return (
-    <Card className="p-8 gap-0">
+    <Card padding={8} className="gap-0">
       <h1 className="text-2xl font-semibold tracking-tight text-center">
-        Welcome{name !== "there" ? `, ${name.split(" ")[0]}` : ""} — tell us who you are
+        {prefill.fromUpload ? "Here's what we found" : "Tell us who you are"}
       </h1>
-      <p className="text-muted-foreground mt-3 leading-relaxed max-w-sm mx-auto text-center">
-        Upload your LinkedIn PDF and Ambit reads your real experience. The more it knows, the better
-        the introductions. You can edit everything later.
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto text-center">
+        {prefill.fromUpload
+          ? "Ambit read your profile and filled this in. Review it, fix anything that's off, and add a personal note."
+          : "Fill in your background so Ambit can make the right introductions. You can edit everything later."}
       </p>
 
-      {/* Upload zone */}
-      <div className="mt-6">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Your LinkedIn PDF or résumé
-          </span>
-          <button
-            type="button"
-            aria-label="Where do I get my LinkedIn PDF?"
-            aria-expanded={showHelp}
-            onClick={() => setShowHelp((v) => !v)}
-            className="grid place-items-center w-4.5 h-4.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 text-[10px] font-semibold leading-none"
-          >
-            ?
-          </button>
+      {prefill.fromUpload && prefill.aiOk !== false && (
+        <div className="mt-5 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-bg/5 px-3.5 py-2.5 text-sm text-primary">
+          <Sparkles className="w-4 h-4 text-accent shrink-0" />
+          <span>Pre-filled from your upload — everything below is editable.</span>
         </div>
-
-        {showHelp && (
-          <div className="mt-2 rounded-xl border border-border bg-muted/40 p-4 text-sm leading-relaxed">
-            <p className="font-medium mb-1.5">Where to get your LinkedIn PDF</p>
-            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-              <li>Open <span className="text-foreground font-medium">linkedin.com</span> and go to your own profile</li>
-              <li>Click the <span className="text-foreground font-medium">Resources</span> (or <span className="text-foreground font-medium">More</span>) button under your name</li>
-              <li>Choose <span className="text-foreground font-medium">Save to PDF</span> — it downloads your profile as a PDF</li>
-              <li>Drop that file here (a regular résumé works too)</li>
-            </ol>
-          </div>
-        )}
-
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => fileInput.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              fileInput.current?.click();
-            }
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f) handleFile(f);
-          }}
-          className={`mt-2 rounded-xl border-2 border-dashed px-5 py-7 text-center cursor-pointer transition-colors ${
-            dragOver ? "border-primary bg-primary/5" : "border-border hover:border-foreground/30"
-          }`}
-        >
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".pdf,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
-            }}
-          />
-          {upload.state === "reading" ? (
-            <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Reading {upload.name}…
-            </span>
-          ) : upload.state === "done" ? (
-            <span className="inline-flex items-center gap-2 text-sm font-medium text-[var(--good)]">
-              <Check className="w-4 h-4" /> {upload.name} — got it. Review the fields below.
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Drop your PDF here</span> or click to
-              browse
-            </span>
-          )}
+      )}
+      {prefill.warning && (
+        <div className="mt-5 rounded-xl border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/5 px-3.5 py-2.5 text-sm text-primary">
+          {prefill.warning}
         </div>
-        {upload.state === "error" && (
-          <p className="text-sm text-[var(--accent-2)] mt-2">{upload.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground mt-2">
-          Prefer not to upload? Fill in the fields below by hand instead.
-        </p>
-      </div>
+      )}
 
       <div className="mt-5">
-        <label htmlFor="headline" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <label htmlFor="headline" className="text-xs font-semibold uppercase tracking-wide text-secondary">
           Headline
         </label>
         <input
@@ -487,7 +561,7 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
           { key: "company", placeholder: "Company", kind: "combobox", options: COMPANY_OPTIONS },
           { key: "years", placeholder: "Years", kind: "years" },
         ]}
-        emptyHint="Upload your PDF to fill this in, or add roles by hand."
+        emptyHint="Add the roles that matter most."
         makeEmpty={() => ({ title: "", company: "", years: "" })}
       />
 
@@ -501,7 +575,7 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
           { key: "school", placeholder: "School", kind: "combobox", options: SCHOOL_OPTIONS },
           { key: "degree", placeholder: "Degree (optional)" },
         ]}
-        emptyHint="Optional — added automatically from your PDF when present."
+        emptyHint="Optional."
         makeEmpty={() => ({ school: "", degree: "" })}
       />
 
@@ -523,10 +597,10 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
 
       {/* Free-form, natural language */}
       <div className="mt-5">
-        <label htmlFor="about" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <label htmlFor="about" className="text-xs font-semibold uppercase tracking-wide text-secondary">
           Anything else, in your own words <span className="normal-case font-normal">(optional)</span>
         </label>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-secondary mt-0.5">
           Whatever a good friend would say when introducing you — side projects, obsessions, what
           you&rsquo;re great at that a résumé misses.
         </p>
@@ -540,10 +614,24 @@ function Connect({ name, onSubmit }: { name: string; onSubmit: (profile: Importe
         />
       </div>
 
-      <Button size="lg" className="mt-7 w-full h-11 text-base" disabled={!canContinue} onClick={submit}>
-        Continue
-        <ArrowRight className="w-4 h-4" />
-      </Button>
+      <div className="mt-7 flex items-center gap-3">
+        <Button
+          label="Back"
+          variant="ghost"
+          size="lg"
+          className="h-11 border border-border"
+          onClick={onBack}
+        />
+        <Button
+          label="Continue"
+          variant="primary"
+          size="lg"
+          className="flex-1 h-11 text-base"
+          isDisabled={!canContinue}
+          onClick={submit}
+          endContent={<ArrowRight className="w-4 h-4" />}
+        />
+      </div>
     </Card>
   );
 }
@@ -628,7 +716,7 @@ function ChipSelect({
 
   return (
     <div className="mt-5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <span className="text-xs font-semibold uppercase tracking-wide text-secondary">
         {label} <span className="normal-case font-normal">(pick any)</span>
       </span>
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -642,8 +730,8 @@ function ChipSelect({
               onClick={() => toggle(opt)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 on
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-muted/40 text-foreground hover:bg-muted"
+                  ? "border-accent bg-accent-bg/10 text-accent"
+                  : "border-border bg-muted/40 text-primary hover:bg-muted"
               }`}
             >
               {on ? "✓ " : ""}
@@ -662,7 +750,7 @@ function ChipSelect({
           }}
           onBlur={addCustom}
           placeholder={addPlaceholder}
-          className="rounded-full border border-dashed border-border bg-transparent px-3 py-1.5 text-xs outline-none focus:border-primary w-32"
+          className="rounded-full border border-dashed border-border bg-transparent px-3 py-1.5 text-xs outline-none focus:border-accent w-32"
         />
       </div>
     </div>
@@ -713,7 +801,7 @@ function Combobox({
         placeholder={placeholder}
         aria-label={ariaLabel}
         autoComplete="off"
-        className="w-full px-3 py-2 rounded-lg border border-border bg-background outline-none focus:border-primary text-sm"
+        className="w-full px-3 py-2 rounded-lg border border-border bg-body outline-none focus:border-accent text-sm"
       />
       {open && matches.length > 0 && (
         <ul className="absolute z-30 mt-1 w-full max-h-52 overflow-auto rounded-lg border border-border bg-popover shadow-md py-1">
@@ -765,7 +853,7 @@ function YearRangePicker({
     onChange(`${nextFrom || "?"} - ${nextTo || "?"}`);
   };
   const selectCls =
-    "px-2 py-2 rounded-lg border border-border bg-background outline-none focus:border-primary text-sm text-muted-foreground w-[5.5rem] shrink-0";
+    "px-2 py-2 rounded-lg border border-border bg-body outline-none focus:border-accent text-sm text-secondary w-[5.5rem] shrink-0";
   return (
     <div className="flex items-center gap-1 shrink-0">
       <select
@@ -832,7 +920,7 @@ function EntryList<T extends Record<string, string>>({
   return (
     <div className="mt-5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-wide text-secondary">
           {label}
         </span>
         <button
@@ -844,7 +932,7 @@ function EntryList<T extends Record<string, string>>({
         </button>
       </div>
       {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground mt-1.5">{emptyHint}</p>
+        <p className="text-xs text-secondary mt-1.5">{emptyHint}</p>
       ) : (
         <div className="mt-2 flex flex-col gap-2">
           {entries.map((entry, i) => (
@@ -873,7 +961,7 @@ function EntryList<T extends Record<string, string>>({
                     onChange={(e) => update(i, f.key, e.target.value)}
                     placeholder={f.placeholder}
                     aria-label={`${label} ${i + 1} ${f.placeholder}`}
-                    className={`px-3 py-2 rounded-lg border border-border bg-background outline-none focus:border-primary text-sm ${
+                    className={`px-3 py-2 rounded-lg border border-border bg-body outline-none focus:border-accent text-sm ${
                       f.narrow ? "w-28 shrink-0" : "flex-1 min-w-0"
                     }`}
                   />
@@ -883,7 +971,7 @@ function EntryList<T extends Record<string, string>>({
                 type="button"
                 aria-label={`Remove ${label.toLowerCase()} entry`}
                 onClick={() => onChange(entries.filter((_, j) => j !== i))}
-                className="shrink-0 grid place-items-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="shrink-0 grid place-items-center w-7 h-7 rounded-lg text-secondary hover:text-primary hover:bg-muted"
               >
                 ×
               </button>
@@ -987,14 +1075,14 @@ function Goals({
   }
 
   return (
-    <Card className="p-0 gap-0 overflow-hidden">
+    <Card padding={0} className="gap-0 overflow-hidden">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-        <span className="grid place-items-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+        <span className="grid place-items-center w-8 h-8 rounded-full bg-accent-bg/10 text-accent">
           <Sparkles className="w-4 h-4" />
         </span>
         <div>
           <p className="text-sm font-semibold leading-tight">Robin</p>
-          <p className="text-xs text-muted-foreground leading-tight">your Ambit agent</p>
+          <p className="text-xs text-secondary leading-tight">your Ambit agent</p>
         </div>
       </div>
 
@@ -1004,8 +1092,8 @@ function Goals({
             <div
               className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                 m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-muted text-foreground rounded-bl-md"
+                  ? "bg-accent-bg text-on-accent rounded-br-md"
+                  : "bg-muted text-primary rounded-bl-md"
               }`}
             >
               {m.content}
@@ -1032,7 +1120,7 @@ function Goals({
                 key={s}
                 type="button"
                 onClick={() => addChip(s)}
-                className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-primary hover:bg-muted transition-colors"
               >
                 {s}
               </button>
@@ -1054,9 +1142,14 @@ function Goals({
           placeholder={GOAL_QUESTIONS[qIndex]?.placeholder ?? "Type your answer…"}
           className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none max-h-28"
         />
-        <Button size="icon-lg" onClick={send} disabled={!draft.trim() || typing} aria-label="Send">
-          <Send className="w-4 h-4" />
-        </Button>
+        <IconButton
+          label="Send"
+          icon={<Send className="w-4 h-4" />}
+          variant="primary"
+          size="lg"
+          onClick={send}
+          isDisabled={!draft.trim() || typing}
+        />
       </div>
     </Card>
   );
@@ -1076,7 +1169,7 @@ function placeholderChips(placeholder: string): string[] {
 function Dot({ delay }: { delay: number }) {
   return (
     <span
-      className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce"
+      className="w-1.5 h-1.5 rounded-full bg-secondary/60 animate-bounce"
       style={{ animationDelay: `${delay}ms` }}
     />
   );
@@ -1086,10 +1179,10 @@ function Dot({ delay }: { delay: number }) {
 
 function Building() {
   return (
-    <Card className="p-10 gap-0 text-center">
+    <Card padding={10} className="gap-0 text-center">
       <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
       <h1 className="text-lg font-semibold tracking-tight mt-5">Building your profile</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
+      <p className="text-secondary mt-2 text-sm">
         Embedding you into the network so the right people can find you.
       </p>
     </Card>
@@ -1100,22 +1193,26 @@ function Building() {
 
 function Enter({ name, onEnter }: { name: string; onEnter: () => void }) {
   return (
-    <Card className="p-8 gap-0 text-center">
-      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-[var(--good)]/12 text-[var(--good)] mb-5">
+    <Card padding={8} className="gap-0 text-center">
+      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-good/12 text-good mb-5">
         <Check className="w-7 h-7" />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">
         You&rsquo;re in the network{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
       </h1>
-      <p className="text-muted-foreground mt-3 leading-relaxed max-w-sm mx-auto">
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
         Your account is live and your profile is in the graph. Head to your home to make your first
         request — tell Ambit what you&rsquo;re looking for and we&rsquo;ll find the right people.
       </p>
 
-      <Button size="lg" className="mt-7 w-full h-11 text-base" onClick={onEnter}>
-        Go to your home
-        <ArrowRight className="w-4 h-4" />
-      </Button>
+      <Button
+        label="Go to your home"
+        variant="primary"
+        size="lg"
+        className="mt-7 w-full h-11 text-base"
+        onClick={onEnter}
+        endContent={<ArrowRight className="w-4 h-4" />}
+      />
     </Card>
   );
 }

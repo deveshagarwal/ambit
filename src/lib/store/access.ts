@@ -39,6 +39,16 @@ export interface InviteCode {
   created_at: string;
 }
 
+// Placeholder code that always redeems, so you can walk through onboarding
+// without minting a real invite. Only honored outside production (local dev) or
+// in an explicit sandbox/demo environment (AMBIT_SANDBOX=1); a real production
+// deploy rejects it, keeping Ambit genuinely invite-only.
+const DEV_INVITE_CODE = "ambit-000000";
+function isDevInvite(code: string): boolean {
+  const allowed = process.env.NODE_ENV !== "production" || process.env.AMBIT_SANDBOX === "1";
+  return allowed && normalizeCode(code) === DEV_INVITE_CODE;
+}
+
 // Human-friendly-ish codes: ambit-xxxxxx (no ambiguous chars). Lowercase so they
 // match normalizeCode() on redemption regardless of how the user types them.
 function newCode(): string {
@@ -65,6 +75,7 @@ export async function mintInviteCodes(count: number, note = ""): Promise<string[
 
 // True if the code exists and hasn't been spent (cheap pre-check for the UI).
 export async function isInviteRedeemable(code: string): Promise<boolean> {
+  if (isDevInvite(code)) return true;
   const row = await queryOne<{ code: string }>(
     `SELECT code FROM invite_codes WHERE code = $1 AND used_by IS NULL`,
     [normalizeCode(code)],
@@ -76,6 +87,7 @@ export async function isInviteRedeemable(code: string): Promise<boolean> {
 // redeemed once even under concurrent requests. Returns true if this call spent it.
 // A code already redeemed BY THIS SAME user counts as success (idempotent retries).
 export async function redeemInvite(code: string, clerkUserId: string): Promise<boolean> {
+  if (isDevInvite(code)) return true;
   const normalized = normalizeCode(code);
   const row = await queryOne<{ code: string }>(
     `UPDATE invite_codes SET used_by = $2, used_at = now()

@@ -15,7 +15,7 @@ export const landing = {
     headlineAccent: "everything",
     headlineTail: ".",
     sub: "Looking for a cofounder? A mentor? An engineer? Let your network do the work. Ambit learns who you are and what you need - then introduces you. No feed, no titles, no performing.",
-    ctaJoin: "Expand your Ambit", // shown when signed out (opens the waitlist)
+    ctaJoin: "Apply to Join", // shown when signed out (opens the waitlist)
     ctaSignedIn: "Ask Ambit", // shown when signed in
     ctaSecondary: "See how it works",
     invitePrompt: "Have an invite code?", // small link next to the primary CTA

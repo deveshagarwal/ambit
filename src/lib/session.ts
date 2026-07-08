@@ -24,7 +24,16 @@ export async function getCurrentMemberId(): Promise<string | null> {
     }
   }
 
-  const { userId } = await auth();
+  // auth() throws on paths the proxy matcher excludes (static-file extensions like
+  // /sw.js, /*.css) where clerkMiddleware() never ran. Those still reach the root
+  // layout via a not-found render; treat "no middleware" as "no user" so the 404
+  // renders cleanly instead of 500-ing.
+  let userId: string | null = null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    return null;
+  }
   if (!userId) return null;
   const member = await getMemberByClerkId(userId);
   return member?.id ?? null;

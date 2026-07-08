@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AttributeType } from "@/lib/types";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { Badge } from "@astryxdesign/core/Badge";
 
 type Item = { id: string; type: AttributeType; value: string };
 
@@ -31,7 +31,7 @@ const ORDER: AttributeType[] = [
 ];
 
 const field =
-  "w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] outline-none focus:border-[var(--primary)] text-sm";
+  "w-full px-3.5 py-2.5 rounded-xl border border-border bg-surface outline-none focus:border-accent text-sm";
 
 export default function PersonaEditor({
   initialName,
@@ -93,17 +93,17 @@ export default function PersonaEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="gap-0 p-5">
+      <Card padding={5} className="gap-0">
         <h2 className="font-semibold mb-4">Profile</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+            <label className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Name
             </label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1.5`} />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+            <label className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Headline
             </label>
             <input
@@ -114,37 +114,42 @@ export default function PersonaEditor({
           </div>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <Button size="sm" onClick={saveProfile} disabled={savingProfile || !name.trim()}>
-            {savingProfile ? "Saving…" : "Save profile"}
-          </Button>
-          {savedProfile && <span className="text-sm text-[var(--good)]">Saved</span>}
+          <Button
+            label={savingProfile ? "Saving…" : "Save profile"}
+            variant="primary"
+            size="sm"
+            onClick={saveProfile}
+            isDisabled={savingProfile || !name.trim()}
+            isLoading={savingProfile}
+          />
+          {savedProfile && <span className="text-sm text-good">Saved</span>}
         </div>
       </Card>
 
-      <Card className="p-5 gap-5">
+      <Card padding={5} className="gap-5">
         <h2 className="font-semibold">Your persona</h2>
         {ORDER.map((type) => (
           <div key={type}>
-            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2">
+            <div className="text-xs font-semibold uppercase tracking-wide text-secondary mb-2">
               {LABEL[type]}
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {attrs.filter((a) => a.type === type).length === 0 && (
-                <span className="text-xs text-[var(--muted-foreground)]">Nothing yet.</span>
+                <span className="text-xs text-secondary">Nothing yet.</span>
               )}
               {attrs
                 .filter((a) => a.type === type)
                 .map((a) => (
-                  <Badge key={a.id} variant="secondary" className="gap-1.5">
-                    {a.value}
+                  <span key={a.id} className="inline-flex items-center gap-1.5">
+                    <Badge variant="neutral" label={a.value} />
                     <button
                       onClick={() => removeItem(a.id)}
                       aria-label={`Remove ${a.value}`}
-                      className="text-[var(--muted-foreground)] hover:text-[var(--accent-2)] leading-none"
+                      className="text-secondary hover:text-accent-2 leading-none text-sm"
                     >
                       ×
                     </button>
-                  </Badge>
+                  </span>
                 ))}
             </div>
             <div className="flex gap-2">
@@ -155,9 +160,13 @@ export default function PersonaEditor({
                 placeholder={`Add to ${LABEL[type].toLowerCase()}…`}
                 className={`${field} flex-1`}
               />
-              <Button variant="outline" size="sm" onClick={() => addItem(type)}>
-                Add
-              </Button>
+              <Button
+                label="Add"
+                variant="ghost"
+                size="sm"
+                onClick={() => addItem(type)}
+                className="border border-border"
+              />
             </div>
           </div>
         ))}

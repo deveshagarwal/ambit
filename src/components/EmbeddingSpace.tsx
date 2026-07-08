@@ -378,25 +378,25 @@ export default function EmbeddingSpace({
 
       {mode === "query" ? (
         <div className="absolute top-3 left-4 max-w-[18rem] pointer-events-none">
-          <div className={`font-mono text-[10px] mb-1 ${dark ? "text-[#9a93c4]" : "text-[var(--muted-foreground)]"}`}>
+          <div className={`font-mono text-[10px] mb-1 ${dark ? "text-[#9a93c4]" : "text-[var(--color-text-secondary)]"}`}>
             you ask
           </div>
           <div
             className={`rounded-xl backdrop-blur px-3 py-2 text-sm leading-snug ${
               dark
                 ? "border border-white/10 bg-black/55 text-white/90"
-                : "border border-[var(--border)] bg-white/80 text-[var(--foreground)]"
+                : "border border-[var(--color-border)] bg-white/80 text-primary"
             }`}
           >
             &ldquo;{PROMPT}&rdquo;
           </div>
-          <div className={`mt-1.5 text-[11px] ${dark ? "text-white/45" : "text-[var(--muted-foreground)]"}`}>
+          <div className={`mt-1.5 text-[11px] ${dark ? "text-white/45" : "text-[var(--color-text-secondary)]"}`}>
             searching across the community
           </div>
         </div>
       ) : fill ? null : (
         <div className="absolute top-3 left-4 text-[11px] leading-relaxed pointer-events-none">
-          <div className={dark ? "text-[#cdc6ff]/70" : "text-[var(--primary)]"}>the community</div>
+          <div className={dark ? "text-[#cdc6ff]/70" : "text-[var(--color-accent)]"}>the community</div>
           <span ref={vecRef} className="hidden" />
         </div>
       )}
@@ -404,21 +404,21 @@ export default function EmbeddingSpace({
       {mode === "query" && (
         <div
           className={`absolute top-3 right-3 w-[14.5rem] rounded-xl backdrop-blur p-3 ${
-            dark ? "border border-white/10 bg-black/55" : "border border-[var(--border)] bg-white/85"
+            dark ? "border border-white/10 bg-black/55" : "border border-[var(--color-border)] bg-white/85"
           }`}
         >
-          <div className={`font-mono text-[10px] mb-2 ${dark ? "text-[#9a93c4]" : "text-[var(--muted-foreground)]"}`}>
+          <div className={`font-mono text-[10px] mb-2 ${dark ? "text-[#9a93c4]" : "text-[var(--color-text-secondary)]"}`}>
             the people who fit
           </div>
           <div className="flex flex-col gap-2">
             {RESULTS.map((r) => (
               <div key={r.name} className="flex items-start gap-2">
-                <span className="font-mono text-[11px] text-[var(--good)] w-9 shrink-0">{r.score}%</span>
+                <span className="font-mono text-[11px] text-good w-9 shrink-0">{r.score}%</span>
                 <div>
-                  <div className={`text-xs font-semibold leading-none ${dark ? "text-white" : "text-[var(--foreground)]"}`}>
+                  <div className={`text-xs font-semibold leading-none ${dark ? "text-white" : "text-primary"}`}>
                     {r.name}
                   </div>
-                  <div className={`text-[11px] mt-0.5 ${dark ? "text-white/55" : "text-[var(--muted-foreground)]"}`}>
+                  <div className={`text-[11px] mt-0.5 ${dark ? "text-white/55" : "text-[var(--color-text-secondary)]"}`}>
                     {r.why}
                   </div>
                 </div>
@@ -430,7 +430,7 @@ export default function EmbeddingSpace({
 
       <div
         className={`absolute bottom-3 right-4 text-[11px] pointer-events-none ${
-          dark ? "text-white/35" : "text-[var(--muted-foreground)]"
+          dark ? "text-white/35" : "text-[var(--color-text-secondary)]"
         }`}
       >
         {mode === "query" ? "the network connects you" : "drag to rotate"}

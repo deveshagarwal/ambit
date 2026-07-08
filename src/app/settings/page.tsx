@@ -3,7 +3,7 @@ import { ensureSeeded } from "@/lib/bootstrap";
 import { getCurrentMemberId } from "@/lib/session";
 import { getAttributes, getMember } from "@/lib/store/repo";
 import PersonaEditor from "@/components/PersonaEditor";
-import { Button } from "@/components/ui/button";
+import { Button } from "@astryxdesign/core/Button";
 
 export default async function Settings() {
   await ensureSeeded();
@@ -14,9 +14,13 @@ export default async function Settings() {
     return (
       <div className="max-w-md mx-auto px-5 py-24 text-center">
         <h1 className="text-2xl font-bold">Build your persona first</h1>
-        <Button render={<Link href="/onboard" />} size="lg" className="mt-6">
-          Build your agent persona
-        </Button>
+        <Button
+          label="Build your agent persona"
+          href="/onboard"
+          variant="primary"
+          size="lg"
+          className="mt-6"
+        />
       </div>
     );
   }
@@ -31,7 +35,7 @@ export default async function Settings() {
     <div className="max-w-2xl mx-auto px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Edit your persona</h1>
-        <p className="text-[var(--muted-foreground)] mt-1 text-sm">
+        <p className="text-secondary mt-1 text-sm">
           Keep it current. Changes update what the network matches you on right away.
         </p>
       </div>
