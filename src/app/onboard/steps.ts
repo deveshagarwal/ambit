@@ -15,6 +15,8 @@ export interface Prefill {
   skills: string[];
   industries: string[];
   fromUpload: boolean; // true when AI prefilled it, so the review step can say so
+  aiOk?: boolean; // false when PDF text was read but LLM structuring failed
+  warning?: string;
 }
 
 export const EMPTY_PREFILL: Prefill = {

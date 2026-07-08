@@ -52,6 +52,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const fields = await extractResume(text);
-  return NextResponse.json({ text: text.slice(0, 20000), fields });
+  const { fields, aiOk } = await extractResume(text);
+  return NextResponse.json({
+    text: text.slice(0, 20000),
+    fields,
+    aiOk,
+    warning: aiOk
+      ? undefined
+      : "We read your PDF but couldn't auto-fill the form. Check your AI_API_KEY and AI_BASE_URL, or fill in the fields below.",
+  });
 }

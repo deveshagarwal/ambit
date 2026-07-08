@@ -349,6 +349,8 @@ function Upload({ name, onDone }: { name: string; onDone: (prefill: Prefill) => 
         skills: Array.isArray(f.skills) ? dedupeMerge([], f.skills) : [],
         industries: Array.isArray(f.industries) ? dedupeMerge([], f.industries) : [],
         fromUpload: true,
+        aiOk: data.aiOk !== false,
+        warning: typeof data.warning === "string" ? data.warning : undefined,
       });
     } catch {
       setUpload({ state: "error", message: "Couldn't reach the network. Try again." });
@@ -523,10 +525,15 @@ function Review({
           : "Fill in your background so Ambit can make the right introductions. You can edit everything later."}
       </p>
 
-      {prefill.fromUpload && (
+      {prefill.fromUpload && prefill.aiOk !== false && (
         <div className="mt-5 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-bg/5 px-3.5 py-2.5 text-sm text-primary">
           <Sparkles className="w-4 h-4 text-accent shrink-0" />
           <span>Pre-filled from your upload — everything below is editable.</span>
+        </div>
+      )}
+      {prefill.warning && (
+        <div className="mt-5 rounded-xl border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/5 px-3.5 py-2.5 text-sm text-primary">
+          {prefill.warning}
         </div>
       )}
 
