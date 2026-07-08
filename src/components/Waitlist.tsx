@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@astryxdesign/core/Button";
 
 // Early-access capture. Posts to /api/waitlist and confirms in place. Kept simple
 // and honest: no fake counts, clear success and error states.
@@ -36,11 +36,11 @@ export default function Waitlist({ dark = false }: { dark?: boolean }) {
 
   const inputCls = dark
     ? "flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 outline-none focus:border-[#a99bff]"
-    : "flex-1 min-w-0 px-4 py-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] outline-none focus:border-[var(--ring)]";
+    : "flex-1 min-w-0 px-4 py-3 rounded-xl bg-surface border border-border outline-none focus:border-accent";
 
   if (state === "done") {
     return (
-      <p className={`text-base font-medium ${dark ? "text-white" : "text-[var(--good)]"}`}>
+      <p className={`text-base font-medium ${dark ? "text-white" : "text-good"}`}>
         You&apos;re on the list. We&apos;ll email your invite when a spot opens.
       </p>
     );
@@ -63,15 +63,16 @@ export default function Waitlist({ dark = false }: { dark?: boolean }) {
         />
         <Button
           type="submit"
+          label={state === "sending" ? "Joining…" : "Join the waitlist"}
+          variant="primary"
           size="lg"
-          disabled={state === "sending"}
+          isDisabled={state === "sending"}
+          isLoading={state === "sending"}
           className="px-6 py-3 whitespace-nowrap"
-        >
-          {state === "sending" ? "Joining…" : "Join the waitlist"}
-        </Button>
+        />
       </div>
       {state === "error" && (
-        <p className={`mt-2 text-sm ${dark ? "text-[#ffb4a2]" : "text-[var(--accent-2)]"}`}>
+        <p className={`mt-2 text-sm ${dark ? "text-[#ffb4a2]" : "text-accent-2"}`}>
           {message}
         </p>
       )}

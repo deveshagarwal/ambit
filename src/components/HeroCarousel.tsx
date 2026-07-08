@@ -241,7 +241,7 @@ export default function HeroCarousel() {
                   </p>
 
                   {/* why you two — the note is written against what you wanted */}
-                  <div className="mt-3 rounded-xl bg-white/60 border-l-2 border-primary px-3.5 py-2.5">
+                  <div className="mt-3 rounded-xl bg-white/60 border-l-2 border-accent px-3.5 py-2.5">
                     <div className="text-[10px] uppercase tracking-[0.16em] text-primary font-semibold">
                       Why you two
                     </div>
@@ -269,8 +269,8 @@ export default function HeroCarousel() {
                 width: i === center ? 26 : 10,
                 background:
                   i === center
-                    ? "var(--primary)"
-                    : "color-mix(in oklab, var(--foreground) 20%, transparent)",
+                    ? "var(--color-accent)"
+                    : "color-mix(in oklab, var(--color-text-primary) 20%, transparent)",
               }}
             />
           ))}

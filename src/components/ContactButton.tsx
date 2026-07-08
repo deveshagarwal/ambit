@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { UserPlus, Check, Loader2, LogIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@astryxdesign/core/Button";
 
 // Request to contact a (blurred) community profile. Fires an intro request; the
 // person's identity is revealed once the connection is made. Signed-out visitors
@@ -30,36 +30,41 @@ export default function ContactButton({ memberId }: { memberId: string }) {
 
   if (state === "sent") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--good)] shrink-0">
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-good shrink-0">
         <Check className="w-3.5 h-3.5" /> Requested
       </span>
     );
   }
   if (state === "signin") {
     return (
-      <Button render={<a href="/onboard" />} variant="outline" size="sm" className="shrink-0">
-        <LogIn className="w-3.5 h-3.5" /> Sign in
-      </Button>
+      <Button
+        label="Sign in"
+        href="/onboard"
+        variant="ghost"
+        size="sm"
+        icon={<LogIn className="w-3.5 h-3.5" />}
+        className="shrink-0 border border-border"
+      />
     );
   }
 
   return (
     <Button
-      variant="outline"
+      label="Connect"
+      variant="ghost"
       size="sm"
       onClick={request}
-      disabled={state === "sending"}
-      title="Request to connect"
-      aria-label="Request to connect"
-      className="shrink-0"
-    >
-      {state === "sending" ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <UserPlus className="w-3.5 h-3.5" />
-      )}
-      Connect
-      {state === "error" && <span className="sr-only">error, try again</span>}
-    </Button>
+      isDisabled={state === "sending"}
+      isLoading={state === "sending"}
+      tooltip="Request to connect"
+      icon={
+        state === "sending" ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <UserPlus className="w-3.5 h-3.5" />
+        )
+      }
+      className="shrink-0 border border-border"
+    />
   );
 }

@@ -1,7 +1,31 @@
 // Shared data + scripts for the onboarding flow. Kept out of the page component
 // so the flow reads top-down and the copy is easy to tweak.
 
-export type Phase = "invite" | "connect" | "goals" | "building" | "enter";
+export type Phase = "invite" | "upload" | "review" | "goals" | "building" | "enter";
+
+// What the upload step hands to the review step: the AI-structured fields (used to
+// prefill the editable form) plus the raw résumé text (mined later by buildPersona).
+// When a member chooses to skip the upload and fill the form by hand, EMPTY_PREFILL
+// is passed instead.
+export interface Prefill {
+  rawText: string;
+  headline: string;
+  work: { title: string; company: string; years: string }[];
+  education: { school: string; degree: string }[];
+  skills: string[];
+  industries: string[];
+  fromUpload: boolean; // true when AI prefilled it, so the review step can say so
+}
+
+export const EMPTY_PREFILL: Prefill = {
+  rawText: "",
+  headline: "",
+  work: [],
+  education: [],
+  skills: [],
+  industries: [],
+  fromUpload: false,
+};
 
 // The real profile the member provides (name comes from their account). `profile`
 // is the raw LinkedIn/bio text they paste; the LLM extracts skills/experience/

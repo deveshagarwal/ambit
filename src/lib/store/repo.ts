@@ -192,6 +192,24 @@ export async function openAsksFromOthers(memberId: string): Promise<Ask[]> {
   );
 }
 
+// An ask with its requester's display fields, for the admin requests view.
+export interface AdminAsk extends Ask {
+  member_name: string;
+  member_headline: string;
+}
+
+// Every ask across the whole community, newest first — admin-only surface for the
+// founder to review requests and source people for them.
+export async function listAllAsks(limit = 200): Promise<AdminAsk[]> {
+  return query<AdminAsk>(
+    `SELECT a.id, a.member_id, a.text, a.tags, a.status, a.created_at::text AS created_at,
+            m.name AS member_name, m.headline AS member_headline
+     FROM asks a JOIN members m ON m.id = a.member_id
+     ORDER BY a.created_at DESC LIMIT $1`,
+    [limit],
+  );
+}
+
 // ---- Connections ----
 
 const CONN_COLS = `id, from_member, to_member, reason, ask_id, created_at::text AS created_at`;

@@ -5,8 +5,8 @@ import type { Attribute } from "@/lib/types";
 import DemoBar from "./DemoBar";
 import EmbeddingSpace from "@/components/EmbeddingSpace";
 import ContactButton from "@/components/ContactButton";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@astryxdesign/core/Card";
+import { Badge } from "@astryxdesign/core/Badge";
 
 // Blurred dummy names — never a real member name, just so each card reads as
 // "there's a person here, hidden" until you connect.
@@ -28,7 +28,7 @@ export default async function Community() {
       <div className="flex items-end justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">The latent space</h1>
-          <p className="text-[var(--muted-foreground)] mt-1">
+          <p className="text-secondary mt-1">
             {members.length} members, embedded by what they offer and need — clustered in a
             high-dimensional vector space, projected down so you can see the shape of the network.
           </p>
@@ -58,13 +58,14 @@ export default async function Community() {
           return (
             <Card
               key={m.id}
-              className={`gap-0 p-5 ${isSelf ? "border-[var(--primary)] ring-1 ring-[var(--primary)]" : ""}`}
+              padding={5}
+              className={`gap-0 ${isSelf ? "border-accent ring-1 ring-accent" : ""}`}
             >
               <div className="flex items-center gap-3">
                 {/* Blurred avatar — identity revealed on connect */}
                 <div
                   aria-hidden
-                  className="shrink-0 w-11 h-11 rounded-full blur-[4px] bg-gradient-to-br from-[var(--primary)]/40 to-[var(--border)]"
+                  className="shrink-0 w-11 h-11 rounded-full blur-[4px] bg-gradient-to-br from-accent/40 to-border"
                 />
                 <div className="min-w-0 flex-1">
                   {isSelf ? (
@@ -77,16 +78,14 @@ export default async function Community() {
                       {NAME_MASKS[i % NAME_MASKS.length]}
                     </div>
                   )}
-                  <div className="text-sm text-[var(--muted-foreground)] truncate">{m.headline}</div>
+                  <div className="text-sm text-secondary truncate">{m.headline}</div>
                 </div>
                 {!isSelf && <ContactButton memberId={m.id} />}
               </div>
               {chips.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {chips.map((a) => (
-                    <Badge key={a.id} variant="secondary">
-                      {a.value}
-                    </Badge>
+                    <Badge key={a.id} variant="neutral" label={a.value} />
                   ))}
                 </div>
               )}

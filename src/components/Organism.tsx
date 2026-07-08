@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { Badge } from "@astryxdesign/core/Badge";
 
 interface Match {
   member: { id: string; name: string; headline: string; karma: number };
@@ -51,7 +51,7 @@ function initials(name: string) {
 function scoreStyle(score: number): { bg: string; color: string } {
   if (score >= 90) return { bg: "#dcfce7", color: "#15803d" };
   if (score >= 75) return { bg: "#dbeafe", color: "#1d4ed8" };
-  return { bg: "var(--accent-soft)", color: "var(--primary)" };
+  return { bg: "var(--color-background-muted)", color: "var(--color-accent)" };
 }
 
 export default function Organism({ placeholder }: OrganismProps) {
@@ -155,12 +155,16 @@ export default function Organism({ placeholder }: OrganismProps) {
     return (
       <div className="max-w-md mx-auto px-5 py-24 text-center">
         <h1 className="text-2xl font-bold">Build your agent persona first</h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">
+        <p className="mt-2 text-secondary">
           I need to know who you are before I can connect you to the network.
         </p>
-        <Button render={<Link href="/onboard" />} size="lg" className="mt-6">
-          Build your persona
-        </Button>
+        <Button
+          label="Build your persona"
+          href="/onboard"
+          variant="primary"
+          size="lg"
+          className="mt-6"
+        />
       </div>
     );
   }
@@ -176,12 +180,12 @@ export default function Organism({ placeholder }: OrganismProps) {
                 <div className="flex items-start gap-3">
                   <AmbitAvatar />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-semibold tracking-widest uppercase text-[var(--primary)] mb-1.5">
+                    <div className="text-[10px] font-semibold tracking-widest uppercase text-[var(--color-accent)] mb-1.5">
                       Ambit
                     </div>
                     <p
                       className="text-sm leading-relaxed"
-                      style={{ color: i === 0 ? "var(--muted-foreground)" : "var(--foreground)" }}
+                      style={{ color: i === 0 ? "var(--color-text-secondary)" : "var(--color-text-primary)" }}
                     >
                       {m.content}
                     </p>
@@ -193,11 +197,11 @@ export default function Organism({ placeholder }: OrganismProps) {
                           const state = connected[mt.member.id];
                           const offers = mt.attributes.filter((a) => a.type === "offer").slice(0, 4);
                           return (
-                            <Card key={mt.member.id} className="gap-0 p-4">
+                            <Card key={mt.member.id} padding={4} className="gap-0">
                               <div className="flex items-center gap-3 mb-2.5">
                                 <div
                                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                                  style={{ background: "var(--accent-soft)", color: "var(--primary)" }}
+                                  style={{ background: "var(--color-background-muted)", color: "var(--color-accent)" }}
                                 >
                                   {initials(mt.member.name)}
                                 </div>
@@ -205,7 +209,7 @@ export default function Organism({ placeholder }: OrganismProps) {
                                   <div className="font-semibold text-sm leading-tight">
                                     {mt.member.name}
                                   </div>
-                                  <div className="text-xs text-[var(--muted-foreground)] truncate">
+                                  <div className="text-xs text-secondary truncate">
                                     {mt.member.headline}
                                   </div>
                                 </div>
@@ -217,25 +221,25 @@ export default function Organism({ placeholder }: OrganismProps) {
                                 </span>
                               </div>
 
-                              <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                              <p className="text-xs leading-relaxed text-secondary">
                                 {mt.reason}
                               </p>
 
                               {offers.length > 0 && (
                                 <div className="mt-2.5 flex flex-wrap gap-1">
                                   {offers.map((a, idx) => (
-                                    <Badge key={idx} variant="secondary">{a.value}</Badge>
+                                    <Badge key={idx} variant="neutral" label={a.value} />
                                   ))}
                                 </div>
                               )}
 
-                              <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                              <div className="mt-3 pt-3 border-t border-[var(--color-border)]">
                                 {state === "connected" ? (
-                                  <span className="text-xs font-semibold text-[var(--good)] flex items-center gap-1.5">
+                                  <span className="text-xs font-semibold text-good flex items-center gap-1.5">
                                     <CheckIcon /> Connected — you can reach out now
                                   </span>
                                 ) : state === "sent" ? (
-                                  <span className="text-xs font-semibold text-[var(--good)] flex items-center gap-1.5">
+                                  <span className="text-xs font-semibold text-good flex items-center gap-1.5">
                                     <CheckIcon /> Intro requested — they&apos;ll see it in their inbox
                                   </span>
                                 ) : (
@@ -243,12 +247,12 @@ export default function Organism({ placeholder }: OrganismProps) {
                                     <button
                                       onClick={() => requestIntro(mt)}
                                       disabled={pending[mt.member.id]}
-                                      className="text-xs font-semibold text-[var(--primary)] hover:underline disabled:opacity-60 disabled:no-underline"
+                                      className="text-xs font-semibold text-[var(--color-accent)] hover:underline disabled:opacity-60 disabled:no-underline"
                                     >
                                       {pending[mt.member.id] ? "Sending…" : "Request intro →"}
                                     </button>
                                     {introError[mt.member.id] && (
-                                      <span className="text-xs text-[var(--accent-2)]">
+                                      <span className="text-xs text-[var(--color-accent-2)]">
                                         {introError[mt.member.id]}
                                       </span>
                                     )}
@@ -266,7 +270,7 @@ export default function Organism({ placeholder }: OrganismProps) {
                 <div className="flex justify-end">
                   <div
                     className="max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-                    style={{ background: "var(--primary)", color: "white" }}
+                    style={{ background: "var(--color-accent)", color: "white" }}
                   >
                     {m.content}
                   </div>
@@ -280,12 +284,11 @@ export default function Organism({ placeholder }: OrganismProps) {
               {SUGGESTIONS.map((s) => (
                 <Button
                   key={s}
+                  label={s}
                   variant="secondary"
                   size="sm"
                   onClick={() => send(s)}
-                >
-                  {s}
-                </Button>
+                />
               ))}
             </div>
           )}
@@ -304,9 +307,9 @@ export default function Organism({ placeholder }: OrganismProps) {
       </div>
 
       {/* Input bar */}
-      <div className="border-t border-[var(--border)] bg-[var(--surface)]">
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-background-surface)]">
         <div className="max-w-2xl mx-auto w-full px-5 py-4">
-          <Card className="p-2 flex-row items-end gap-2">
+          <Card padding={2} className="flex-row items-end gap-2">
             <textarea
               ref={textareaRef}
               value={text}
@@ -326,12 +329,12 @@ export default function Organism({ placeholder }: OrganismProps) {
               onClick={() => send()}
               disabled={thinking || !text.trim()}
               aria-label="Send"
-              className="shrink-0 w-9 h-9 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition-all"
+              className="shrink-0 w-9 h-9 rounded-xl bg-[var(--color-accent)] text-white flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition-all"
             >
               <SendIcon />
             </button>
           </Card>
-          <p className="text-[10px] text-[var(--muted-foreground)] mt-2 text-center select-none">
+          <p className="text-[10px] text-secondary mt-2 text-center select-none">
             <kbd className="font-mono">↵</kbd> to send &nbsp;·&nbsp; <kbd className="font-mono">Shift ↵</kbd> for new line
           </p>
         </div>
@@ -342,7 +345,7 @@ export default function Organism({ placeholder }: OrganismProps) {
           width: 6px;
           height: 6px;
           border-radius: 9999px;
-          background: var(--primary);
+          background: var(--color-accent);
           opacity: 0.5;
           display: inline-block;
           animation: wv-bounce 1s ease-in-out infinite;
@@ -361,7 +364,7 @@ export default function Organism({ placeholder }: OrganismProps) {
 
 function AmbitAvatar() {
   return (
-    <div className="shrink-0 w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center mt-0.5">
+    <div className="shrink-0 w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center mt-0.5">
       <Logo size={14} className="text-white" />
     </div>
   );

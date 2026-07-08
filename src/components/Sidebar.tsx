@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import Logo from "@/components/Logo";
-import { Button } from "@/components/ui/button";
+import { Button } from "@astryxdesign/core/Button";
 
 const STORAGE_KEY = "ambit:sidebar-collapsed";
 
@@ -51,22 +51,22 @@ export default function Sidebar({
     <aside
       className={`${
         collapsed ? "w-16" : "w-56"
-      } shrink-0 h-screen sticky top-0 border-r border-[var(--border)] bg-[var(--surface)] flex flex-col transition-[width] duration-200 z-20`}
+      } shrink-0 h-screen sticky top-0 border-r border-border bg-surface flex flex-col transition-[width] duration-200 z-20`}
     >
       {/* Top: logo + wordmark + collapse toggle */}
       <div className="h-14 flex items-center gap-2 px-3 shrink-0">
         <Link
           href="/"
-          className="flex items-center gap-2 font-serif font-semibold text-lg tracking-tight min-w-0"
+          className="flex items-center gap-2 font-heading font-semibold text-lg tracking-tight min-w-0"
         >
-          <Logo size={20} className="text-[var(--primary)] shrink-0" />
+          <Logo size={20} className="text-accent shrink-0" />
           {!collapsed && <span className="truncate">Ambit</span>}
         </Link>
         <button
           onClick={toggle}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="ml-auto p-1.5 rounded-lg hover:bg-[var(--accent-soft)] text-[var(--muted-foreground)] shrink-0"
+          className="ml-auto p-1.5 rounded-lg hover:bg-muted text-secondary shrink-0"
         >
           <ChevronIcon collapsed={collapsed} />
         </button>
@@ -86,8 +86,8 @@ export default function Sidebar({
                 collapsed ? "justify-center" : ""
               } ${
                 active
-                  ? "bg-[var(--accent-soft)] text-[var(--primary)]"
-                  : "hover:bg-[var(--accent-soft)]"
+                  ? "bg-muted text-accent"
+                  : "hover:bg-muted"
               }`}
             >
               <span className="shrink-0">{item.icon}</span>
@@ -98,14 +98,14 @@ export default function Sidebar({
       </nav>
 
       {/* Bottom: auth / profile controls */}
-      <div className="mt-auto border-t border-[var(--border)] p-3 flex flex-col gap-2">
+      <div className="mt-auto border-t border-border p-3 flex flex-col gap-2">
         {signedIn ? (
           <>
             {me ? (
               <Link
                 href="/home"
                 title={collapsed ? me.name : undefined}
-                className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--accent-soft)] ${
+                className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted ${
                   collapsed ? "justify-center" : ""
                 }`}
               >
@@ -118,13 +118,13 @@ export default function Sidebar({
               </Link>
             ) : (
               <Button
-                render={<Link href="/onboard" />}
+                label={collapsed ? "→" : "Finish setup"}
+                href="/onboard"
+                variant="primary"
                 size="sm"
-                title={collapsed ? "Finish setup" : undefined}
+                tooltip={collapsed ? "Finish setup" : undefined}
                 className={`w-full whitespace-nowrap ${collapsed ? "px-2" : ""}`}
-              >
-                {collapsed ? "→" : "Finish setup"}
-              </Button>
+              />
             )}
             <div className={collapsed ? "flex justify-center" : ""}>
               <UserButton />
@@ -136,22 +136,21 @@ export default function Sidebar({
                 domains the Clerk instance doesn't know about; see JoinCTA.tsx. */}
             <SignInButton forceRedirectUrl="/home">
               <Button
+                label={collapsed ? "In" : "Sign in"}
                 variant="ghost"
                 size="sm"
-                title={collapsed ? "Sign in" : undefined}
+                tooltip={collapsed ? "Sign in" : undefined}
                 className={`w-full ${collapsed ? "" : "justify-start"}`}
-              >
-                {collapsed ? "In" : "Sign in"}
-              </Button>
+              />
             </SignInButton>
             <SignUpButton forceRedirectUrl="/onboard">
               <Button
+                label={collapsed ? "Join" : "Join the network"}
+                variant="primary"
                 size="sm"
-                title={collapsed ? "Join the network" : undefined}
+                tooltip={collapsed ? "Join the network" : undefined}
                 className={`w-full whitespace-nowrap ${collapsed ? "px-2" : ""}`}
-              >
-                {collapsed ? "Join" : "Join the network"}
-              </Button>
+              />
             </SignUpButton>
           </>
         )}

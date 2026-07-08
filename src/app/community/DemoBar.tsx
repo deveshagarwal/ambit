@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
 
 interface Option {
   id: string;
@@ -47,8 +47,12 @@ export default function DemoBar({
   }
 
   return (
-    <Card className="p-4 flex-row flex-wrap items-center gap-3 mb-6 bg-[var(--accent-soft)] border-[var(--primary)]/30">
-      <span className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
+    <Card
+      padding={4}
+      variant="muted"
+      className="flex-row flex-wrap items-center gap-3 mb-6 border-accent/30"
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-accent">
         Demo sandbox
       </span>
       <label className="text-sm flex items-center gap-2">
@@ -57,7 +61,7 @@ export default function DemoBar({
           value={currentId ?? ""}
           disabled={busy}
           onChange={(e) => actAs(e.target.value)}
-          className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm max-w-[14rem]"
+          className="px-2 py-1.5 rounded-lg border border-border bg-surface text-sm max-w-[14rem]"
         >
           <option value="" disabled>
             choose a member…
@@ -69,9 +73,14 @@ export default function DemoBar({
           ))}
         </select>
       </label>
-      <Button variant="outline" size="sm" onClick={reseed} disabled={busy} className="ml-auto">
-        {busy ? "…" : "Reseed sandbox"}
-      </Button>
+      <Button
+        label={busy ? "…" : "Reseed sandbox"}
+        variant="ghost"
+        size="sm"
+        onClick={reseed}
+        isDisabled={busy}
+        className="ml-auto border border-border"
+      />
     </Card>
   );
 }
