@@ -3,96 +3,164 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Sparkles, Check, ArrowRight, Loader2, Send } from "lucide-react";
+import { Sparkles, Check, ArrowRight, Loader2, Pencil, Lock } from "lucide-react";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { EMPTY_PREFILL, GOAL_QUESTIONS, type Imported, type Phase, type Prefill } from "./steps";
+import { Badge } from "@astryxdesign/core/Badge";
+import {
+  EMPTY_PREFILL,
+  GOAL_QUESTIONS,
+  type Imported,
+  type Phase,
+  type Prefill,
+} from "./steps";
 import { COMPANY_OPTIONS, SCHOOL_OPTIONS } from "./lists";
+import type { ApplicationSnapshot } from "@/lib/types";
 
-type ChatMsg = { role: "agent" | "user"; content: string };
+type Answers = ApplicationSnapshot["answers"];
+const EMPTY_ANSWERS: Answers = { needs: "", meet: "", offer: "" };
 
 export default function Onboard() {
   const router = useRouter();
   const { user } = useUser();
 
-  const [phase, setPhase] = useState<Phase>("invite");
-  // Set by the upload step, consumed by the review step to prefill its editable form.
+  const [phase, setPhase] = useState<Phase>("loading");
+  // Set by the upload step, consumed by the reveal step to seed its editable form.
   const [prefill, setPrefill] = useState<Prefill>(EMPTY_PREFILL);
+  // The confirmed profile (after reveal) + goals — carried to apply and the gate.
   const [imported, setImported] = useState<Imported | null>(null);
-  // Ambit is invite-only: the code is redeemed up front (the "invite" gate) before
-  // onboarding, then re-passed to the persona build (redeemInvite is idempotent).
-  const [invite, setInvite] = useState("");
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [error, setError] = useState<string | null>(null);
 
   const name = user?.fullName ?? "there";
 
+  // On mount, ask the server where this user stands: already a member (→ home), a
+  // pending applicant (→ restore their profile and jump to the invite gate), or
+  // brand new (→ start at upload).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/onboard/application");
+        if (!res.ok) {
+          if (!cancelled) setPhase("upload");
+          return;
+        }
+        const data = (await res.json()) as {
+          isMember?: boolean;
+          application?: { status?: string; profile?: ApplicationSnapshot } | null;
+        };
+        if (cancelled) return;
+        if (data.isMember) {
+          router.replace("/home");
+          return;
+        }
+        const app = data.application;
+        if (app && app.status === "pending" && app.profile) {
+          setImported(snapshotToImported(app.profile));
+          setAnswers({ ...EMPTY_ANSWERS, ...app.profile.answers });
+          setPhase("waitlist");
+          return;
+        }
+        setPhase("upload");
+      } catch {
+        if (!cancelled) setPhase("upload");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   return (
     <div className="min-h-screen flex flex-col">
-      {phase !== "invite" && <StepRail phase={phase} />}
+      {phase !== "loading" && phase !== "enter" && <StepRail phase={phase} />}
       <div className="flex-1 grid place-items-center px-5 py-10">
         <div className="w-full max-w-xl">
-          {phase === "invite" && (
-            <InviteGate
-              name={name}
-              onValid={(code) => {
-                setInvite(code);
-                setError(null);
-                setPhase("upload");
-              }}
-            />
-          )}
+          {phase === "loading" && <Loading />}
+
           {phase === "upload" && (
             <Upload
               name={name}
               onDone={(next) => {
                 setPrefill(next);
                 setError(null);
-                setPhase("review");
+                setPhase("reveal");
               }}
             />
           )}
-          {phase === "review" && (
-            <Review
+
+          {phase === "reveal" && (
+            <Reveal
+              name={name}
               prefill={prefill}
-              onBack={() => {
-                setError(null);
-                setPhase("upload");
-              }}
-              onSubmit={(profile) => {
+              onContinue={(profile) => {
                 setImported(profile);
                 setError(null);
                 setPhase("goals");
               }}
             />
           )}
+
           {phase === "goals" && imported && (
             <Goals
-              name={name}
               imported={imported}
-              onComplete={async (collected) => {
+              initial={answers}
+              onComplete={(collected) => {
+                setAnswers(collected);
+                setError(null);
+                setPhase("apply");
+              }}
+            />
+          )}
+
+          {phase === "apply" && imported && (
+            <Apply
+              name={name}
+              headline={imported.headline}
+              onApplied={() => {
+                setError(null);
+                setPhase("waitlist");
+              }}
+              buildSnapshot={() => ({
+                name: user?.fullName ?? "New member",
+                headline: imported.headline,
+                profile: { imported, answers },
+              })}
+              onError={(msg) => setError(msg)}
+            />
+          )}
+
+          {phase === "waitlist" && imported && (
+            <WaitlistGate
+              name={name}
+              onRedeem={async (code) => {
                 setPhase("building");
                 const result = await buildPersona({
                   name: user?.fullName ?? "New member",
                   imported,
-                  answers: collected,
-                  inviteCode: invite,
+                  answers,
+                  inviteCode: code,
                 });
                 if (result.ok) {
                   setPhase("enter");
-                } else if (result.status === 403) {
-                  // Invite no longer valid (rare — it was redeemed at the gate);
-                  // send them back to the gate.
-                  setError(result.error ?? "That invite code is invalid or already used.");
-                  setPhase("invite");
-                } else {
-                  setError(result.error ?? "Something went wrong building your profile. Try again.");
-                  setPhase("goals");
+                  return { ok: true };
                 }
+                setPhase("waitlist");
+                return {
+                  ok: false,
+                  error:
+                    result.error ??
+                    (result.status === 403
+                      ? "That invite code is invalid or already used."
+                      : "Something went wrong. Try again."),
+                };
               }}
             />
           )}
+
           {phase === "building" && <Building />}
+
           {phase === "enter" && (
             <Enter
               name={name}
@@ -102,7 +170,8 @@ export default function Onboard() {
               }}
             />
           )}
-          {error && phase !== "building" && (
+
+          {error && phase !== "building" && phase !== "loading" && (
             <p className="text-sm text-[var(--color-accent-2)] mt-4 text-center">{error}</p>
           )}
         </div>
@@ -117,9 +186,23 @@ export default function Onboard() {
   );
 }
 
-// Build the persona from the imported LinkedIn data + the goals interview. The
-// invite code rides along: new members must spend a valid one (the API 403s
-// otherwise), existing members may re-run onboarding freely.
+// Rebuild the editable Imported shape from a stored application snapshot, so a
+// returning applicant's profile (and the persona we later build) is unchanged.
+function snapshotToImported(snap: ApplicationSnapshot): Imported {
+  return {
+    headline: snap.imported.headline ?? "",
+    skills: snap.imported.skills ?? "",
+    industries: snap.imported.industries ?? "",
+    profile: snap.imported.profile ?? "",
+    contribute: snap.imported.contribute ?? "",
+    work: Array.isArray(snap.imported.work) ? snap.imported.work : [],
+    education: Array.isArray(snap.imported.education) ? snap.imported.education : [],
+  };
+}
+
+// Build the persona from the confirmed profile + goals. The invite code rides
+// along: new members must spend a valid one (the API 403s otherwise), existing
+// members may re-run onboarding freely.
 async function buildPersona({
   name,
   imported,
@@ -128,7 +211,7 @@ async function buildPersona({
 }: {
   name: string;
   imported: Imported;
-  answers: Record<string, string>;
+  answers: Answers;
   inviteCode: string;
 }): Promise<{ ok: boolean; status?: number; error?: string }> {
   const needs = [answers.needs, answers.meet].filter(Boolean).join("\n");
@@ -163,22 +246,21 @@ async function buildPersona({
 // --- Progress rail across the top ---
 
 const RAIL: { phase: Phase; label: string }[] = [
-  { phase: "upload", label: "You" },
+  { phase: "upload", label: "Profile" },
   { phase: "goals", label: "Goals" },
-  { phase: "enter", label: "Done" },
+  { phase: "waitlist", label: "Join" },
 ];
 
-// The upload + review steps both live under the "You" rail marker, and the
-// building spinner under "Goals". Collapse the real phase onto its rail phase so
-// progress/active state reads cleanly across the three visible markers.
+// Collapse the real phase onto its rail marker: upload+reveal read as "Profile",
+// goals as "Goals", and apply/waitlist/building as "Join".
 function railPhaseOf(phase: Phase): Phase {
-  if (phase === "review") return "upload";
-  if (phase === "building") return "goals";
+  if (phase === "reveal") return "upload";
+  if (phase === "apply" || phase === "building") return "waitlist";
   return phase;
 }
 
 function StepRail({ phase }: { phase: Phase }) {
-  const order: Phase[] = ["upload", "goals", "enter"];
+  const order: Phase[] = ["upload", "goals", "waitlist"];
   const rail = railPhaseOf(phase);
   const current = order.indexOf(rail);
   return (
@@ -219,85 +301,13 @@ function StepRail({ phase }: { phase: Phase }) {
   );
 }
 
-// --- Invite gate: redeemed before onboarding begins ---
+// --- Mount check spinner ---
 
-function InviteGate({ name, onValid }: { name: string; onValid: (code: string) => void }) {
-  const [code, setCode] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    const trimmed = code.trim();
-    if (!trimmed || checking) return;
-    setChecking(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/onboard/invite", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: trimmed }),
-      });
-      if (res.ok) {
-        onValid(trimmed);
-        return;
-      }
-      const d = await res.json().catch(() => ({}));
-      setError(d.error ?? "That invite code is invalid or already used.");
-    } catch {
-      setError("Couldn't reach the network. Try again.");
-    } finally {
-      setChecking(false);
-    }
-  }
-
+function Loading() {
   return (
-    <Card padding={8} className="gap-0 text-center">
-      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
-        <Sparkles className="w-7 h-7" />
-      </div>
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Welcome{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
-      </h1>
-      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
-        Ambit is invite-only while the network grows. Enter your code to get started.
-      </p>
-
-      <input
-        value={code}
-        onChange={(e) => {
-          setCode(e.target.value);
-          setError(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            submit();
-          }
-        }}
-        autoFocus
-        placeholder="ambit-xxxxxx"
-        className="mt-6 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-center text-sm"
-      />
-      {error && <p className="text-sm text-[var(--color-accent-2)] mt-2">{error}</p>}
-
-      <Button
-        label={checking ? "Checking…" : "Continue"}
-        variant="primary"
-        size="lg"
-        className="mt-5 w-full h-11 text-base"
-        isDisabled={!code.trim() || checking}
-        isLoading={checking}
-        onClick={submit}
-        icon={checking ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
-        endContent={checking ? undefined : <ArrowRight className="w-4 h-4" />}
-      />
-      <p className="text-xs text-secondary mt-4">
-        No code?{" "}
-        <a href="/#waitlist" className="text-primary font-medium">
-          Join the waitlist
-        </a>
-        .
-      </p>
+    <Card padding={10} className="gap-0 text-center">
+      <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+      <p className="text-secondary mt-4 text-sm">Loading…</p>
     </Card>
   );
 }
@@ -305,7 +315,7 @@ function InviteGate({ name, onValid }: { name: string; onValid: (code: string) =
 // --- Step 1: upload your LinkedIn PDF / resume ---
 //
 // A single, focused job: get the document. On a successful read we auto-advance to
-// the review step, where Ambit's AI-structured fields are waiting pre-filled — the
+// the reveal step, where Ambit's AI-structured fields are waiting pre-filled — the
 // upload does the work, the member just confirms.
 
 function Upload({ name, onDone }: { name: string; onDone: (prefill: Prefill) => void }) {
@@ -327,7 +337,7 @@ function Upload({ name, onDone }: { name: string; onDone: (prefill: Prefill) => 
         setUpload({ state: "error", message: data.error ?? "Couldn't read that file. Try again." });
         return;
       }
-      // Hand the AI-structured fields + raw text to the review step, which prefills
+      // Hand the AI-structured fields + raw text to the reveal step, which prefills
       // its editable form from them.
       const f = data.fields ?? {};
       onDone({
@@ -471,17 +481,23 @@ function Upload({ name, onDone }: { name: string; onDone: (prefill: Prefill) => 
   );
 }
 
-// --- Step 2: review the AI-prefilled profile, edit anything ---
+// --- Step 2: reveal the built profile, edit anything ---
+//
+// A polished, read-only "here's what we built" card by default (styled after the
+// home profile card). "Edit" flips the same state into the editable form; "Looks
+// good" composes the Imported profile and advances. State is lifted here so the
+// two views share a single source of truth.
 
-function Review({
+function Reveal({
+  name,
   prefill,
-  onBack,
-  onSubmit,
+  onContinue,
 }: {
+  name: string;
   prefill: Prefill;
-  onBack: () => void;
-  onSubmit: (profile: Imported) => void;
+  onContinue: (profile: Imported) => void;
 }) {
+  const [editing, setEditing] = useState(!prefill.fromUpload);
   const [headline, setHeadline] = useState(prefill.headline);
   const [work, setWork] = useState(prefill.work);
   const [education, setEducation] = useState(prefill.education);
@@ -491,15 +507,14 @@ function Review({
   // Raw extracted PDF text, carried through untouched and mined later by buildPersona.
   const rawText = prefill.rawText;
 
-  function submit() {
+  function compose(): Imported {
     // Work/education go through as structured rows (stored as canonical
     // company/school/experience edges). The free-text about + raw résumé is the
     // `profile` blob: stored on the member and mined by the LLM for the rest.
     const composed = [about.trim() && `About: ${about.trim()}`, rawText]
       .filter(Boolean)
       .join("\n\n");
-
-    onSubmit({
+    return {
       headline,
       skills: skills.join(", "),
       industries: industries.join(", "),
@@ -507,30 +522,130 @@ function Review({
       contribute: "",
       work: work.filter((w) => w.title.trim() || w.company.trim()),
       education: education.filter((e) => e.school.trim()),
-    });
+    };
   }
 
   const canContinue = headline.trim().length > 0;
   const field =
     "mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-sm";
 
+  // ---- Read-only reveal ----
+  if (!editing) {
+    const cleanWork = work.filter((w) => w.title.trim() || w.company.trim());
+    const cleanEdu = education.filter((e) => e.school.trim());
+    return (
+      <Card padding={8} className="gap-0">
+        <div className="text-center">
+          <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
+            <Sparkles className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">Here&rsquo;s the profile we built</h1>
+          <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
+            Ambit read your background and put this together. Give it a look — you can edit anything.
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">
+                {name !== "there" ? name : "You"}
+              </h2>
+              <p className="text-secondary text-sm">{headline || "Add a headline"}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline shrink-0 mt-1"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          </div>
+
+          {about.trim() && <p className="mt-3 text-sm leading-relaxed">{about.trim()}</p>}
+
+          <div className="mt-5 flex flex-col gap-4">
+            {cleanWork.length > 0 && (
+              <RevealSection label="Experience">
+                <div className="flex flex-col gap-1.5">
+                  {cleanWork.map((w, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{w.title || w.company}</span>
+                      {w.title && w.company && <span className="text-secondary"> · {w.company}</span>}
+                      {w.years && <span className="text-secondary"> · {w.years}</span>}
+                    </div>
+                  ))}
+                </div>
+              </RevealSection>
+            )}
+            {cleanEdu.length > 0 && (
+              <RevealSection label="Education">
+                <div className="flex flex-col gap-1.5">
+                  {cleanEdu.map((e, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{e.school}</span>
+                      {e.degree && <span className="text-secondary"> · {e.degree}</span>}
+                    </div>
+                  ))}
+                </div>
+              </RevealSection>
+            )}
+            {skills.length > 0 && (
+              <RevealSection label="Skills">
+                <div className="flex flex-wrap gap-1.5">
+                  {skills.map((s) => (
+                    <Badge key={s} variant="neutral" label={s} />
+                  ))}
+                </div>
+              </RevealSection>
+            )}
+            {industries.length > 0 && (
+              <RevealSection label="Industries">
+                <div className="flex flex-wrap gap-1.5">
+                  {industries.map((s) => (
+                    <Badge key={s} variant="neutral" label={s} />
+                  ))}
+                </div>
+              </RevealSection>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-7 flex items-center gap-3">
+          <Button
+            label="Edit details"
+            variant="ghost"
+            size="lg"
+            className="h-11 border border-border"
+            onClick={() => setEditing(true)}
+          />
+          <Button
+            label="Looks good"
+            variant="primary"
+            size="lg"
+            className="flex-1 h-11 text-base"
+            isDisabled={!canContinue}
+            onClick={() => onContinue(compose())}
+            endContent={<ArrowRight className="w-4 h-4" />}
+          />
+        </div>
+      </Card>
+    );
+  }
+
+  // ---- Editable form ----
   return (
     <Card padding={8} className="gap-0">
       <h1 className="text-2xl font-semibold tracking-tight text-center">
-        {prefill.fromUpload ? "Here's what we found" : "Tell us who you are"}
+        {prefill.fromUpload ? "Edit your profile" : "Tell us who you are"}
       </h1>
       <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto text-center">
         {prefill.fromUpload
-          ? "Ambit read your profile and filled this in. Review it, fix anything that's off, and add a personal note."
+          ? "Fix anything that's off and add a personal note. Everything here is editable."
           : "Fill in your background so Ambit can make the right introductions. You can edit everything later."}
       </p>
 
-      {prefill.fromUpload && prefill.aiOk !== false && (
-        <div className="mt-5 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-bg/5 px-3.5 py-2.5 text-sm text-primary">
-          <Sparkles className="w-4 h-4 text-accent shrink-0" />
-          <span>Pre-filled from your upload — everything below is editable.</span>
-        </div>
-      )}
       {prefill.warning && (
         <div className="mt-5 rounded-xl border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/5 px-3.5 py-2.5 text-sm text-primary">
           {prefill.warning}
@@ -615,24 +730,35 @@ function Review({
       </div>
 
       <div className="mt-7 flex items-center gap-3">
-        <Button
-          label="Back"
-          variant="ghost"
-          size="lg"
-          className="h-11 border border-border"
-          onClick={onBack}
-        />
+        {prefill.fromUpload && (
+          <Button
+            label="Done"
+            variant="ghost"
+            size="lg"
+            className="h-11 border border-border"
+            onClick={() => setEditing(false)}
+          />
+        )}
         <Button
           label="Continue"
           variant="primary"
           size="lg"
           className="flex-1 h-11 text-base"
           isDisabled={!canContinue}
-          onClick={submit}
+          onClick={() => onContinue(compose())}
           endContent={<ArrowRight className="w-4 h-4" />}
         />
       </div>
     </Card>
+  );
+}
+
+function RevealSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-secondary mb-2">{label}</div>
+      {children}
+    </div>
   );
 }
 
@@ -983,195 +1109,260 @@ function EntryList<T extends Record<string, string>>({
   );
 }
 
-// --- Step 3: chat-style goals interview ---
+// --- Step 3: goals screen (AI-preloaded, editable — not a chat) ---
 
 function Goals({
-  name,
   imported,
+  initial,
   onComplete,
 }: {
-  name: string;
   imported: Imported;
-  onComplete: (answers: Record<string, string>) => void;
+  initial: Answers;
+  onComplete: (answers: Answers) => void;
 }) {
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { role: "agent", content: GOAL_QUESTIONS[0].prompt },
-  ]);
-  const [qIndex, setQIndex] = useState(0);
-  const [draft, setDraft] = useState("");
-  const [typing, setTyping] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const answers = useRef<Record<string, string>>({});
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [values, setValues] = useState<Answers>(initial);
+  // Whether we're still waiting on the AI drafts (only when nothing's prefilled yet).
+  const [loading, setLoading] = useState(
+    !initial.needs && !initial.meet && !initial.offer,
+  );
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, typing]);
-
-  // Personalized answer chips for the current question. Start from the static
-  // placeholder chips so something shows instantly, then swap in LLM suggestions
-  // (best-effort — on any failure we keep the static ones).
-  const question = GOAL_QUESTIONS[qIndex];
-  useEffect(() => {
-    if (!question) return;
+    // Already have answers (e.g. edited then came back) — don't overwrite them.
+    if (initial.needs || initial.meet || initial.offer) return;
     let cancelled = false;
-    setSuggestions(placeholderChips(question.placeholder));
     (async () => {
       try {
-        const res = await fetch("/api/onboard/suggestions", {
+        const res = await fetch("/api/onboard/goals", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            key: question.key,
-            question: question.prompt,
-            imported,
-            answers: answers.current,
-          }),
+          body: JSON.stringify({ imported }),
         });
-        if (!res.ok) return;
-        const data = (await res.json()) as { suggestions?: string[] };
-        if (!cancelled && data.suggestions?.length) setSuggestions(data.suggestions);
+        if (res.ok) {
+          const data = (await res.json()) as { goals?: Partial<Answers> };
+          if (!cancelled && data.goals) {
+            setValues((v) => ({
+              needs: v.needs || data.goals?.needs || "",
+              meet: v.meet || data.goals?.meet || "",
+              offer: v.offer || data.goals?.offer || "",
+            }));
+          }
+        }
       } catch {
-        /* keep the static placeholder chips */
+        /* keep empty fields — the member fills them in */
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [question, imported]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Tap a chip to build up the answer (comma-separated), so multiple can stack.
-  function addChip(chip: string) {
-    setDraft((d) => (d.trim() ? `${d.replace(/[,\s]+$/, "")}, ${chip}` : chip));
-  }
-
-  function send() {
-    const value = draft.trim();
-    if (!value || typing) return;
-    answers.current[GOAL_QUESTIONS[qIndex].key] = value;
-    setMessages((m) => [...m, { role: "user", content: value }]);
-    setDraft("");
-
-    const next = qIndex + 1;
-    if (next < GOAL_QUESTIONS.length) {
-      setTyping(true);
-      setTimeout(() => {
-        setTyping(false);
-        setQIndex(next);
-        setMessages((m) => [...m, { role: "agent", content: GOAL_QUESTIONS[next].prompt }]);
-      }, 900);
-    } else {
-      // Final acknowledgement, then hand off to the build step.
-      setTyping(true);
-      setTimeout(() => {
-        setTyping(false);
-        setMessages((m) => [
-          ...m,
-          { role: "agent", content: "Perfect — that's everything I need. Setting you up now…" },
-        ]);
-        setTimeout(() => onComplete({ ...answers.current }), 800);
-      }, 900);
-    }
-  }
+  const canContinue = Object.values(values).some((v) => v.trim().length > 0);
+  const field =
+    "mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-sm resize-none";
 
   return (
-    <Card padding={0} className="gap-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-        <span className="grid place-items-center w-8 h-8 rounded-full bg-accent-bg/10 text-accent">
-          <Sparkles className="w-4 h-4" />
-        </span>
-        <div>
-          <p className="text-sm font-semibold leading-tight">Robin</p>
-          <p className="text-xs text-secondary leading-tight">your Ambit agent</p>
+    <Card padding={8} className="gap-0">
+      <div className="text-center">
+        <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
+          <Sparkles className="w-7 h-7" />
         </div>
+        <h1 className="text-2xl font-semibold tracking-tight">What are your goals?</h1>
+        <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
+          Ambit drafted these from your profile so the right people can find you. Tweak anything —
+          this is what powers your introductions.
+        </p>
       </div>
 
-      <div ref={scrollRef} className="px-5 py-5 space-y-3 h-[min(65vh,640px)] overflow-y-auto">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-accent-bg text-on-accent rounded-br-md"
-                  : "bg-muted text-primary rounded-bl-md"
-              }`}
+      <div className="mt-6 flex flex-col gap-5">
+        {GOAL_QUESTIONS.map((q) => (
+          <div key={q.key}>
+            <label
+              htmlFor={`goal-${q.key}`}
+              className="text-xs font-semibold uppercase tracking-wide text-secondary"
             >
-              {m.content}
+              {q.label}
+            </label>
+            <p className="text-xs text-secondary mt-0.5">{q.prompt}</p>
+            <div className="relative">
+              <textarea
+                id={`goal-${q.key}`}
+                value={values[q.key]}
+                onChange={(e) => setValues((v) => ({ ...v, [q.key]: e.target.value }))}
+                rows={2}
+                placeholder={loading ? "Drafting…" : q.placeholder}
+                className={field}
+              />
+              {loading && !values[q.key] && (
+                <Loader2 className="w-4 h-4 animate-spin text-accent absolute right-3 top-3" />
+              )}
             </div>
           </div>
         ))}
-        {typing && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-2xl rounded-bl-md px-3.5 py-3 flex items-center gap-1">
-              <Dot delay={0} />
-              <Dot delay={150} />
-              <Dot delay={300} />
-            </div>
-          </div>
-        )}
       </div>
 
-      {!typing && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-3 pt-3 pb-1">
-          {suggestions
-            .filter((s) => !draft.toLowerCase().includes(s.toLowerCase()))
-            .map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => addChip(s)}
-                className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-primary hover:bg-muted transition-colors"
-              >
-                {s}
-              </button>
-            ))}
-        </div>
-      )}
-
-      <div className="border-t border-border p-3 flex items-end gap-2">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          rows={1}
-          placeholder={GOAL_QUESTIONS[qIndex]?.placeholder ?? "Type your answer…"}
-          className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none max-h-28"
-        />
-        <IconButton
-          label="Send"
-          icon={<Send className="w-4 h-4" />}
-          variant="primary"
-          size="lg"
-          onClick={send}
-          isDisabled={!draft.trim() || typing}
-        />
-      </div>
+      <Button
+        label="Continue"
+        variant="primary"
+        size="lg"
+        className="mt-7 w-full h-11 text-base"
+        isDisabled={!canContinue}
+        onClick={() => onComplete(values)}
+        endContent={<ArrowRight className="w-4 h-4" />}
+      />
     </Card>
   );
 }
 
-// Static fallback chips derived from a question's placeholder (comma-separated
-// examples). Used until the LLM suggestions arrive, or if they never do.
-function placeholderChips(placeholder: string): string[] {
-  return placeholder
-    .replace(/[.…]+$/, "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 4);
+// --- Step 4: apply to join (persist the application, pre-invite) ---
+
+function Apply({
+  name,
+  headline,
+  onApplied,
+  buildSnapshot,
+  onError,
+}: {
+  name: string;
+  headline: string;
+  onApplied: () => void;
+  buildSnapshot: () => { name: string; headline: string; profile: ApplicationSnapshot };
+  onError: (msg: string) => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+
+  async function apply() {
+    if (submitting) return;
+    setSubmitting(true);
+    onError("");
+    try {
+      const res = await fetch("/api/onboard/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(buildSnapshot()),
+      });
+      if (res.ok) {
+        onApplied();
+        return;
+      }
+      const d = await res.json().catch(() => ({}));
+      onError(d.error ?? "Couldn't submit your application. Try again.");
+    } catch {
+      onError("Couldn't reach the network. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Card padding={8} className="gap-0 text-center">
+      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-accent-bg/10 text-accent mb-5">
+        <Sparkles className="w-7 h-7" />
+      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Ready to join Ambit{name !== "there" ? `, ${name.split(" ")[0]}` : ""}?
+      </h1>
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
+        Your profile is ready{headline ? ` — ${headline}` : ""}. Ambit is invite-only while the
+        network grows. Apply to join and we&rsquo;ll save your spot.
+      </p>
+
+      <Button
+        label={submitting ? "Applying…" : "Apply to join"}
+        variant="primary"
+        size="lg"
+        className="mt-7 w-full h-11 text-base"
+        isDisabled={submitting}
+        isLoading={submitting}
+        onClick={apply}
+        icon={submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
+        endContent={submitting ? undefined : <ArrowRight className="w-4 h-4" />}
+      />
+    </Card>
+  );
 }
 
-function Dot({ delay }: { delay: number }) {
+// --- Step 5: the invite gate (now last) ---
+
+function WaitlistGate({
+  name,
+  onRedeem,
+}: {
+  name: string;
+  onRedeem: (code: string) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    const trimmed = code.trim();
+    if (!trimmed || checking) return;
+    setChecking(true);
+    setError(null);
+    const result = await onRedeem(trimmed);
+    if (!result.ok) {
+      setError(result.error ?? "That invite code is invalid or already used.");
+      setChecking(false);
+    }
+    // On success the parent advances the phase; leave `checking` on so the button
+    // stays disabled through the transition.
+  }
+
   return (
-    <span
-      className="w-1.5 h-1.5 rounded-full bg-secondary/60 animate-bounce"
-      style={{ animationDelay: `${delay}ms` }}
-    />
+    <Card padding={8} className="gap-0 text-center">
+      <div className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-good/12 text-good mb-5">
+        <Check className="w-7 h-7" />
+      </div>
+      <p className="mx-auto mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-secondary">
+        <Lock className="w-3 h-3" />
+        Invite-only &middot; private beta
+      </p>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        You&rsquo;re on the list{name !== "there" ? `, ${name.split(" ")[0]}` : ""}
+      </h1>
+      <p className="text-secondary mt-3 leading-relaxed max-w-sm mx-auto">
+        Ambit is private right now &mdash; we&rsquo;re letting people in a few at a time. We&rsquo;ll
+        personally reach out by email as soon as a spot opens for you, so there&rsquo;s nothing else
+        you need to do.
+      </p>
+
+      <div className="mt-7 pt-6 border-t border-border">
+        <p className="text-sm text-secondary">
+          Already have an invite code? Enter it to skip the line and join now.
+        </p>
+        <input
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value);
+            setError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="ambit-xxxxxx"
+          className="mt-3 w-full px-3.5 py-2.5 rounded-xl border border-border bg-body outline-none focus:border-accent text-center text-sm"
+        />
+      {error && <p className="text-sm text-[var(--color-accent-2)] mt-2">{error}</p>}
+
+      <Button
+        label={checking ? "Checking…" : "Join with invite code"}
+        variant="primary"
+        size="lg"
+        className="mt-5 w-full h-11 text-base"
+        isDisabled={!code.trim() || checking}
+        isLoading={checking}
+        onClick={submit}
+        icon={checking ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
+        endContent={checking ? undefined : <ArrowRight className="w-4 h-4" />}
+      />
+      </div>
+    </Card>
   );
 }
 
@@ -1189,7 +1380,7 @@ function Building() {
   );
 }
 
-// --- Step 4: you're in ---
+// --- Step 6: you're in ---
 
 function Enter({ name, onEnter }: { name: string; onEnter: () => void }) {
   return (

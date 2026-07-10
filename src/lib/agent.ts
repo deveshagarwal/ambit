@@ -64,6 +64,61 @@ This question is about their ${FOLLOWUP_INTENT[input.key]}.`,
   }
 }
 
+// Preload the goals screen: given the imported profile, draft a first-person
+// answer for each of the three goal prompts (what they need / who to meet / what
+// they can offer). Not a chat — the member just edits the drafts. Best-effort:
+// returns empty strings on no key / bad output so the screen still works and the
+// member types their own.
+export interface GoalsSuggestion {
+  needs: string;
+  meet: string;
+  offer: string;
+}
+
+const EMPTY_GOALS: GoalsSuggestion = { needs: "", meet: "", offer: "" };
+
+export async function suggestGoals(input: {
+  headline: string;
+  skills: string;
+  industries: string;
+  work?: { title?: string; company?: string }[];
+}): Promise<GoalsSuggestion> {
+  if (!aiEnabled()) return EMPTY_GOALS;
+  const roles = (input.work ?? [])
+    .map((w) => [w.title, w.company].filter(Boolean).join(" at "))
+    .filter(Boolean)
+    .slice(0, 4)
+    .join("; ");
+  try {
+    const raw = await chatJSON<Partial<GoalsSuggestion>>(
+      [
+        {
+          role: "system",
+          content: `A new member is joining Ambit, an autonomous professional networking community. From their profile, draft three concise first-person answers that set up their networking goals.
+Return JSON: { "needs": string, "meet": string, "offer": string }.
+- needs: what they most want to get from their network right now.
+- meet: the specific kinds of people who would be most valuable for them to meet.
+- offer: what they can genuinely help other members with.
+Each is ONE natural first-person sentence (max ~140 chars), specific to their background, no preamble or quotes.`,
+        },
+        {
+          role: "user",
+          content: `Headline: ${input.headline}
+Skills: ${input.skills}
+Industries: ${input.industries}
+Recent roles: ${roles}`,
+        },
+      ],
+      { temperature: 0.5 },
+    );
+    const clean = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 200) : "");
+    return { needs: clean(raw.needs), meet: clean(raw.meet), offer: clean(raw.offer) };
+  } catch (err) {
+    console.error("[agent] suggestGoals fell back to empty drafts:", err);
+    return EMPTY_GOALS;
+  }
+}
+
 // Structure the text of an uploaded LinkedIn PDF / resume into the fields the
 // onboarding form shows for confirmation: headline, work history, education,
 // and skill/industry lists. The raw text also rides along to buildPersona (its

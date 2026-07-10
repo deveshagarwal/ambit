@@ -9,7 +9,7 @@ import {
   setProfileText,
 } from "@/lib/store/repo";
 import type { AttributeType } from "@/lib/types";
-import { redeemInvite } from "@/lib/store/access";
+import { redeemInvite, markApplicationJoined } from "@/lib/store/access";
 import { awardJoin } from "@/lib/karma";
 import { ensureSeeded } from "@/lib/bootstrap";
 
@@ -93,7 +93,11 @@ export async function POST(req: Request) {
   }
   if (structured.length) await addAttributes(member.id, structured);
 
-  if (isNew) await awardJoin(member.id);
+  if (isNew) {
+    await awardJoin(member.id);
+    // They redeemed a code and are now in the graph — retire their application.
+    await markApplicationJoined(userId);
+  }
 
   // Onboarding builds the account/persona only. The member creates their actual
   // requests later, from their home — so we don't auto-create an ask here.

@@ -60,6 +60,37 @@ export interface KarmaEvent {
   created_at: string;
 }
 
+// ---- Onboarding applications ----
+
+// The full profile snapshot captured when a user applies to join, before they
+// have an invite code. Holds everything needed to (a) restore the onboarding UI
+// on return and (b) build the persona once a code is redeemed. `imported` mirrors
+// the client `Imported` shape (src/app/onboard/steps.ts); `answers` are the goals.
+export interface ApplicationSnapshot {
+  imported: {
+    headline: string;
+    skills: string;
+    industries: string;
+    profile: string;
+    contribute: string;
+    work: { title: string; company: string; years: string }[];
+    education: { school: string; degree: string }[];
+  };
+  answers: { needs: string; meet: string; offer: string };
+}
+
+export interface Application {
+  id: string;
+  clerk_user_id: string;
+  email: string;
+  name: string;
+  headline: string;
+  profile: ApplicationSnapshot;
+  status: "pending" | "joined";
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- AI structured outputs ----
 
 export const ProfileExtraction = z.object({

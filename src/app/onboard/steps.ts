@@ -1,7 +1,18 @@
 // Shared data + scripts for the onboarding flow. Kept out of the page component
 // so the flow reads top-down and the copy is easy to tweak.
 
-export type Phase = "invite" | "upload" | "review" | "goals" | "building" | "enter";
+// The flow now sells before it gates: import → reveal the built profile → set
+// goals → apply → THEN the invite gate (waitlist). Member creation is deferred to
+// the gate. `loading` covers the mount-time check for an existing member/application.
+export type Phase =
+  | "loading"
+  | "upload"
+  | "reveal"
+  | "goals"
+  | "apply"
+  | "waitlist"
+  | "building"
+  | "enter";
 
 // What the upload step hands to the review step: the AI-structured fields (used to
 // prefill the editable form) plus the raw résumé text (mined later by buildPersona).
@@ -42,10 +53,13 @@ export interface Imported {
   education: { school: string; degree: string }[];
 }
 
-// The chat-style goals interview. Each question the agent asks maps its answer
-// onto a field of the persona we build at the end.
+// The goals screen (no longer a chat): three fields the member reviews, each
+// AI-prefilled from their profile. Every answer maps onto a field of the persona
+// we build at the gate. `label` is the short field heading; `prompt` is the
+// supporting question; `placeholder` seeds the empty state if AI is unavailable.
 export interface GoalQuestion {
   key: "needs" | "meet" | "offer";
+  label: string;
   prompt: string;
   placeholder: string;
 }
@@ -53,19 +67,20 @@ export interface GoalQuestion {
 export const GOAL_QUESTIONS: GoalQuestion[] = [
   {
     key: "needs",
-    prompt:
-      "Nice to meet you. Let's make Ambit work for you — what are you hoping to get out of your network right now?",
-    placeholder: "raise a seed round, find a technical co-founder, break into fintech…",
+    label: "What you're looking for",
+    prompt: "What are you hoping to get out of your network right now?",
+    placeholder: "Raise a seed round, find a technical co-founder, break into fintech…",
   },
   {
     key: "meet",
-    prompt: "Got it. Who would be most valuable for you to meet? Be as specific as you like.",
-    placeholder: "seed-stage fintech VCs, senior ML engineers, design partners…",
+    label: "Who you want to meet",
+    prompt: "Who would be most valuable for you to meet?",
+    placeholder: "Seed-stage fintech VCs, senior ML engineers, design partners…",
   },
   {
     key: "offer",
-    prompt:
-      "Last one. Networks work best when they're mutual — what could you help other people with?",
-    placeholder: "intros to VCs, pitch feedback, hiring advice…",
+    label: "What you can offer",
+    prompt: "Networks work best when they're mutual — what can you help others with?",
+    placeholder: "Intros to VCs, pitch feedback, hiring advice…",
   },
 ];

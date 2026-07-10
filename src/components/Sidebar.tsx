@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Logo from "@/components/Logo";
 import { Button } from "@astryxdesign/core/Button";
 
@@ -24,6 +24,14 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // The root layout is a shared segment that Next preserves across client-side
+  // navigation, so the server-computed `signedIn` prop goes stale after a soft
+  // nav through sign-in (page updates, layout doesn't). Read the LIVE Clerk auth
+  // state on the client and prefer it once Clerk has loaded; until then fall back
+  // to the server prop so SSR/first-paint stays consistent (no hydration flash).
+  const { isSignedIn, isLoaded } = useUser();
+  const authed = isLoaded ? isSignedIn : signedIn;
 
   // Seed from localStorage after mount to avoid a hydration mismatch (no
   // localStorage on the server, so render expanded first, then reconcile).
@@ -99,7 +107,7 @@ export default function Sidebar({
 
       {/* Bottom: auth / profile controls */}
       <div className="mt-auto border-t border-border p-3 flex flex-col gap-2">
-        {signedIn ? (
+        {authed ? (
           <>
             {me ? (
               <Link

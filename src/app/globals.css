@@ -24,6 +24,9 @@
   }
   html {
     @apply font-sans;
+    /* Nudge the whole app's type scale up ~6% (16px -> 17px). All Tailwind
+       text-* sizes are rem-based, so they scale from this single root value. */
+    font-size: 106.25%;
   }
 }
 

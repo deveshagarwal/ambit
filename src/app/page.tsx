@@ -2,8 +2,6 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { ensureSeeded } from "@/lib/bootstrap";
 import { landing } from "@/content/landing";
 import Logo from "@/components/Logo";
-import JoinCTA from "@/components/JoinCTA";
-import Waitlist from "@/components/Waitlist";
 import HeroCarousel from "@/components/HeroCarousel";
 import LogoMarquee from "@/components/LogoMarquee";
 import { Button } from "@astryxdesign/core/Button";
@@ -90,27 +88,17 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* FINAL CTA: waitlist capture */}
-      <section id="waitlist" className="max-w-6xl mx-auto px-5 pb-24 scroll-mt-20">
-        <div className="rounded-2xl border border-border bg-card px-8 py-14 text-center">
-          <h2 className="font-heading text-3xl sm:text-4xl font-medium tracking-tight">
-            {landing.cta.heading}
-          </h2>
-          <p className="mt-3 text-secondary max-w-lg mx-auto">{landing.cta.sub}</p>
-          <div className="mt-7">
-            <Waitlist />
-            <p className="mt-3 text-xs text-secondary">
-              {landing.hero.invitePrompt}{" "}
-              <JoinCTA
-                signedIn={false}
-                href="/onboard"
-                label={landing.hero.inviteLink}
-                className="text-secondary underline underline-offset-4 hover:text-primary cursor-pointer"
-              />
-            </p>
+      {/* Small footer */}
+      <footer className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-heading font-semibold tracking-tight text-primary">
+            <Logo size={20} className="text-primary" /> Ambit
           </div>
+          <p className="text-xs text-secondary">
+            © {new Date().getFullYear()} Ambit · Invite-only while the network grows.
+          </p>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }
