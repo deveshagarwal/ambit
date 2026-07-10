@@ -14,7 +14,9 @@ import {
   Search,
   ExternalLink,
   Sparkles,
+  UserPlus,
 } from "lucide-react";
+import type { Application } from "@/lib/types";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 
@@ -86,7 +88,7 @@ export default function AdminWizard() {
 
 // --- Hub: tabbed home after unlock ---
 
-type Tab = "requests" | "invites";
+type Tab = "requests" | "applications" | "invites";
 
 function Hub({ secret, waitlist }: { secret: string; waitlist: WaitlistEntry[] }) {
   const [tab, setTab] = useState<Tab>("requests");
@@ -96,11 +98,16 @@ function Hub({ secret, waitlist }: { secret: string; waitlist: WaitlistEntry[] }
         <TabButton active={tab === "requests"} onClick={() => setTab("requests")} icon={<Inbox className="w-4 h-4" />}>
           Requests
         </TabButton>
+        <TabButton active={tab === "applications"} onClick={() => setTab("applications")} icon={<UserPlus className="w-4 h-4" />}>
+          Applicants
+        </TabButton>
         <TabButton active={tab === "invites"} onClick={() => setTab("invites")} icon={<Ticket className="w-4 h-4" />}>
           Invites
         </TabButton>
       </div>
-      {tab === "requests" ? <RequestsPanel secret={secret} /> : <InvitesPanel secret={secret} waitlist={waitlist} />}
+      {tab === "requests" && <RequestsPanel secret={secret} />}
+      {tab === "applications" && <ApplicationsPanel secret={secret} />}
+      {tab === "invites" && <InvitesPanel secret={secret} waitlist={waitlist} />}
     </div>
   );
 }
@@ -313,6 +320,143 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// --- Applicants tab: people who built a profile and applied, pre-invite ---
+
+function ApplicationsPanel({ secret }: { secret: string }) {
+  const [apps, setApps] = useState<Application[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/applications", { headers: { "x-admin-secret": secret } });
+        if (!res.ok) {
+          if (!cancelled) setError("Couldn't load applicants.");
+          return;
+        }
+        const data = (await res.json()) as { applications?: Application[] };
+        if (!cancelled) setApps(data.applications ?? []);
+      } catch {
+        if (!cancelled) setError("Couldn't reach the network.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [secret]);
+
+  if (error) {
+    return (
+      <Card padding={8} className="gap-0 text-center">
+        <p className="text-sm text-[var(--color-accent-2)]">{error}</p>
+      </Card>
+    );
+  }
+
+  if (!apps) {
+    return (
+      <Card padding={10} className="gap-0 text-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+        <p className="text-sm text-secondary mt-4">Loading applicants…</p>
+      </Card>
+    );
+  }
+
+  const pending = apps.filter((a) => a.status !== "joined").length;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Card padding={5} className="gap-0">
+        <div className="flex items-center gap-3">
+          <span className="grid place-items-center w-10 h-10 rounded-xl bg-accent-bg/10 text-accent shrink-0">
+            <UserPlus className="w-5 h-5" />
+          </span>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Applicants</h1>
+            <p className="text-sm text-secondary">
+              {pending} awaiting invite · {apps.length} total
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {apps.length === 0 ? (
+        <Card padding={10} className="gap-0 text-center">
+          <UserPlus className="w-6 h-6 text-secondary mx-auto" />
+          <p className="text-sm text-secondary mt-4">No applicants yet.</p>
+        </Card>
+      ) : (
+        apps.map((a) => <ApplicationCard key={a.id} app={a} />)
+      )}
+    </div>
+  );
+}
+
+function ApplicationCard({ app }: { app: Application }) {
+  const { imported, answers } = app.profile;
+  const skills = imported.skills
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  return (
+    <Card padding={5} className="gap-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate">{app.name || "Unnamed"}</p>
+          {app.headline && <p className="text-xs text-secondary truncate">{app.headline}</p>}
+          {app.email && (
+            <p className="text-xs text-secondary truncate mt-0.5 inline-flex items-center gap-1">
+              <Mail className="w-3 h-3" /> {app.email}
+            </p>
+          )}
+        </div>
+        <span className="shrink-0 flex items-center gap-2">
+          {app.status === "joined" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-good/12 text-good px-2 py-0.5 text-xs font-medium">
+              <Check className="w-3 h-3" /> joined
+            </span>
+          ) : (
+            <span className="rounded-full bg-muted text-secondary px-2 py-0.5 text-xs font-medium">
+              applied
+            </span>
+          )}
+          <span className="text-xs text-secondary">{relativeTime(app.created_at)}</span>
+        </span>
+      </div>
+
+      {skills.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {skills.map((s) => (
+            <span key={s} className="rounded-full bg-muted/60 text-secondary px-2 py-0.5 text-xs">
+              {s}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {(answers.needs || answers.meet || answers.offer) && (
+        <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3">
+          {answers.needs && <GoalLine label="Wants" value={answers.needs} />}
+          {answers.meet && <GoalLine label="To meet" value={answers.meet} />}
+          {answers.offer && <GoalLine label="Offers" value={answers.offer} />}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function GoalLine({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="text-xs leading-relaxed">
+      <span className="font-semibold uppercase tracking-wide text-secondary">{label}: </span>
+      <span className="text-primary">{value}</span>
+    </p>
+  );
 }
 
 // --- Invites tab: waitlist review + mint (the original invite flow) ---

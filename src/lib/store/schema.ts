@@ -126,6 +126,25 @@ CREATE TABLE IF NOT EXISTS invite_codes (
   used_at    timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Applications: a signed-in user builds a full profile during onboarding and
+-- "applies to join" BEFORE they have an invite code. We hold their profile
+-- snapshot (JSON, same text-blob convention as asks.tags) keyed on their Clerk
+-- id so the founder can review who applied and mint codes for them, and so a
+-- returning applicant lands straight on the invite gate with their work intact.
+-- status flips pending -> joined once they redeem a code and become a member.
+CREATE TABLE IF NOT EXISTS applications (
+  id            text PRIMARY KEY,
+  clerk_user_id text NOT NULL,
+  email         text NOT NULL DEFAULT '',
+  name          text NOT NULL DEFAULT '',
+  headline      text NOT NULL DEFAULT '',
+  profile       text NOT NULL DEFAULT '{}',
+  status        text NOT NULL DEFAULT 'pending',
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_applications_clerk ON applications(clerk_user_id);
 -- Note: duplicate-connection / duplicate-pending-request prevention is enforced
 -- in the connect route (see api/connect), not as a unique index here, because
 -- the boot-time DDL runs against the live DB with no migration guard and a

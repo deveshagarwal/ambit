@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import { query, queryOne } from "./client";
+import type { Application, ApplicationSnapshot } from "@/lib/types";
 
 // ---- Waitlist ----
 
@@ -105,4 +106,96 @@ export async function redeemInvite(code: string, clerkUserId: string): Promise<b
 
 function normalizeCode(code: string): string {
   return code.trim().toLowerCase();
+}
+
+// ---- Applications ----
+
+const EMPTY_SNAPSHOT: ApplicationSnapshot = {
+  imported: {
+    headline: "",
+    skills: "",
+    industries: "",
+    profile: "",
+    contribute: "",
+    work: [],
+    education: [],
+  },
+  answers: { needs: "", meet: "", offer: "" },
+};
+
+// Rows come back with `profile` still a JSON string (it's a text column, same as
+// asks.tags), so parse it into the structured snapshot here.
+interface RawApplication extends Omit<Application, "profile"> {
+  profile: string;
+}
+
+function parseApplication(row: RawApplication): Application {
+  let profile = EMPTY_SNAPSHOT;
+  try {
+    const parsed = JSON.parse(row.profile) as Partial<ApplicationSnapshot>;
+    profile = {
+      imported: { ...EMPTY_SNAPSHOT.imported, ...(parsed.imported ?? {}) },
+      answers: { ...EMPTY_SNAPSHOT.answers, ...(parsed.answers ?? {}) },
+    };
+  } catch {
+    /* keep EMPTY_SNAPSHOT on malformed JSON */
+  }
+  return { ...row, profile };
+}
+
+const APP_COLS = `id, clerk_user_id, email, name, headline, profile, status,
+  created_at::text AS created_at, updated_at::text AS updated_at`;
+
+// Persist (or update) an application, keyed on the Clerk user id so re-applying
+// or editing before entering a code just overwrites the snapshot. status is left
+// untouched on conflict, so an already-joined member can't be knocked back to
+// pending by a stray re-submit.
+export async function upsertApplication(input: {
+  clerkUserId: string;
+  email: string;
+  name: string;
+  headline: string;
+  profile: ApplicationSnapshot;
+}): Promise<void> {
+  await query(
+    `INSERT INTO applications (id, clerk_user_id, email, name, headline, profile, status, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending', now())
+     ON CONFLICT (clerk_user_id) DO UPDATE SET
+       email = EXCLUDED.email,
+       name = EXCLUDED.name,
+       headline = EXCLUDED.headline,
+       profile = EXCLUDED.profile,
+       updated_at = now()`,
+    [
+      nanoid(10),
+      input.clerkUserId,
+      input.email.trim().slice(0, 200),
+      input.name.trim().slice(0, 200),
+      input.headline.trim().slice(0, 200),
+      JSON.stringify(input.profile),
+    ],
+  );
+}
+
+export async function getApplicationByClerkId(clerkUserId: string): Promise<Application | null> {
+  const row = await queryOne<RawApplication>(
+    `SELECT ${APP_COLS} FROM applications WHERE clerk_user_id = $1`,
+    [clerkUserId],
+  );
+  return row ? parseApplication(row) : null;
+}
+
+export async function markApplicationJoined(clerkUserId: string): Promise<void> {
+  await query(
+    `UPDATE applications SET status = 'joined', updated_at = now() WHERE clerk_user_id = $1`,
+    [clerkUserId],
+  );
+}
+
+export async function listApplications(limit = 500): Promise<Application[]> {
+  const rows = await query<RawApplication>(
+    `SELECT ${APP_COLS} FROM applications ORDER BY created_at DESC LIMIT $1`,
+    [limit],
+  );
+  return rows.map(parseApplication);
 }
