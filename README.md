@@ -61,6 +61,25 @@ string, then drive the loop with the admin route:
 
 Email the codes out; each unlocks one persona build at `/onboard`.
 
+## Admin people sourcing
+
+In `/admin`, open Requests and click **Find people** to search for public LinkedIn
+profiles relevant to a member's request. Unconfigured search uses
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) in Fast
+mode, without an account or search API key. Results feed the existing profile cards
+and optional AI reranker. The admin secret is required; requests are only sent when
+an admin clicks the button. Request text is sent to the selected search service.
+
+An existing `EXA_API_KEY` keeps Exa selected. Set `AMBIT_SEARCH_PROVIDER` to
+`parallel` or `exa` to choose explicitly, or `disabled` to turn off external
+sourcing. Selecting Exa requires its key. Provider errors do not switch services.
+Parallel results are restricted to HTTPS LinkedIn `/in/` profiles; search may return
+no matching profiles. Search has a 15-second budget and stops when the request is
+cancelled. The anonymous service has usage limits, so a failed search can be retried
+later. Internal community matching continues to use the local knowledge graph.
+
+Run `npm test` for the sourcing route and provider tests.
+
 ## Deploy (Vercel)
 
 1. Push to GitHub, import into Vercel.

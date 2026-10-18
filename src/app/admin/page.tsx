@@ -22,7 +22,7 @@ import { Card } from "@astryxdesign/core/Card";
 
 // The admin surface is guarded by ADMIN_SECRET, sent as the x-admin-secret header.
 // This tool unlocks with the secret, then lands on a hub with two tabs:
-//   Requests — every user ask, with one-click LinkedIn sourcing via Exa
+//   Requests — every user ask, with one-click LinkedIn sourcing
 //   Invites  — the waitlist + invite-code minting flow
 type Phase = "unlock" | "hub";
 

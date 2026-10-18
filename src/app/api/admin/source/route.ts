@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { aiEnabled, chatJSON } from "@/lib/ai";
-import { exaEnabled, searchLinkedInPeople, type ExaPerson } from "@/lib/exa";
+import { searchProvider, searchLinkedInPeople, type Person, type SearchProvider } from "@/lib/people-search";
 
 export const runtime = "nodejs";
-// Headroom over the Exa client's 15s timeout (external call + optional LLM rerank).
+// Headroom over the search client's 15s timeout (external call + optional LLM rerank).
 export const maxDuration = 30;
 
 // Same ADMIN_SECRET shared-secret guard as the rest of the admin surface.
@@ -14,11 +14,11 @@ function authorized(req: Request): boolean {
   return req.headers.get("x-admin-secret") === secret;
 }
 
-export interface EnrichedPerson extends ExaPerson {
+export interface EnrichedPerson extends Person {
   reason?: string;
 }
 
-// Exa returns external, attacker-controllable text — strip anything that could
+// Search returns external, attacker-controllable text — strip anything that could
 // break the prompt frame or smuggle instructions into the reranker, and cap length.
 function sanitize(s: string): string {
   return s.replace(/[`\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
@@ -35,25 +35,32 @@ export async function POST(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!exaEnabled()) {
+  let provider: SearchProvider;
+  try {
+    provider = searchProvider();
+  } catch {
+    return NextResponse.json({ error: "Search provider is not configured correctly." }, { status: 503 });
+  }
+  if (provider === "disabled") {
     return NextResponse.json(
-      { error: "Exa search is not configured. Set EXA_API_KEY to enable sourcing." },
+      { error: "People sourcing is disabled." },
       { status: 503 },
     );
   }
 
-  const { askText } = (await req.json().catch(() => ({}))) as { askText?: string };
-  const text = askText?.trim();
+  const body = await req.json().catch(() => null);
+  const text = typeof body?.askText === "string" ? body.askText.trim() : "";
   if (!text) {
     return NextResponse.json({ error: "empty request text" }, { status: 400 });
   }
 
-  let people: ExaPerson[];
+  let people: Person[];
   try {
-    // Nudge Exa toward individual profiles rather than company pages or posts.
-    people = await searchLinkedInPeople(`LinkedIn profile of a person who can help with: ${text}`);
+    people = await searchLinkedInPeople(
+      `LinkedIn profile of a person who can help with: ${text}`, provider, req.signal,
+    );
   } catch (err) {
-    console.error("[source] exa search failed", err);
+    console.error("[source] search failed", err);
     return NextResponse.json({ error: "Search failed. Try again." }, { status: 503 });
   }
 
@@ -62,7 +69,7 @@ export async function POST(req: Request) {
   }
 
   // Best-effort LLM rerank with a why-fit line. On no key or any failure, fall
-  // back to Exa's own relevance order with no reason attached.
+  // back to the search provider's relevance order with no reason attached.
   if (aiEnabled()) {
     try {
       const lines = people.map(
